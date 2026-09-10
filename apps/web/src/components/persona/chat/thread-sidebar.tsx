@@ -120,6 +120,7 @@ function ThreadSidebar({
   threads,
   activeThreadId,
   isLoading,
+  error,
   onSelectThread,
   onCreateThread,
   onRenameThread,
@@ -128,6 +129,7 @@ function ThreadSidebar({
   threads: PersonaThread[];
   activeThreadId: string | null;
   isLoading?: boolean;
+  error?: Error | null;
   onSelectThread: (id: string) => void;
   onCreateThread: () => void;
   onRenameThread: (id: string, title: string) => void;
@@ -143,6 +145,10 @@ function ThreadSidebar({
       <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2 pt-0">
         {isLoading ? (
           <div className="p-2 text-xs text-muted-foreground">Loading…</div>
+        ) : error ? (
+          <div className="p-2 text-xs text-destructive">
+            Couldn&apos;t load chats: {error.message}
+          </div>
         ) : threads.length === 0 ? (
           <div className="p-2 text-xs text-muted-foreground">No chats yet.</div>
         ) : (

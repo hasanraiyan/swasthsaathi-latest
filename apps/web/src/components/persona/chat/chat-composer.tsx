@@ -68,6 +68,7 @@ function ChatComposer({
   onChange,
   onSend,
   onStop,
+  onStartVoice,
   onStopVoice,
   onSendToVoice,
   isStreaming = false,
@@ -79,6 +80,9 @@ function ChatComposer({
   onChange: (value: string) => void;
   onSend: () => void;
   onStop?: () => void;
+  /** Idle + empty input renders this in the send button's own slot instead
+   * of a dimmed send arrow — omit to keep the old always-a-send-arrow look. */
+  onStartVoice?: () => void;
   onStopVoice?: () => void;
   onSendToVoice?: (text: string) => void;
   isStreaming?: boolean;
@@ -148,6 +152,16 @@ function ChatComposer({
                 <PhoneXIcon />
               </InputGroupButton>
             </div>
+          ) : !trimmed && onStartVoice ? (
+            <InputGroupButton
+              type="button"
+              variant="default"
+              size="icon-sm"
+              aria-label="Use voice mode"
+              onClick={onStartVoice}
+            >
+              <VoiceModeIcon className="size-4" />
+            </InputGroupButton>
           ) : (
             <InputGroupButton
               type="submit"

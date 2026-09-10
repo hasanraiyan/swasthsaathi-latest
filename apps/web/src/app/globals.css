@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Streamdown's compiled code-block renderer emits arbitrary-value utility
+   classes at runtime (e.g. text-[var(--sdm-c,inherit)] for Shiki token
+   colors, bg-[var(--sdm-bg,...)] for the block's own background). Tailwind
+   only scans project source by default, so without this those classes are
+   never generated: fenced code renders colourless AND without its
+   background/padding box, so it collapses to bare text instead of the
+   bordered block with a header bar. Same directive the registry's own
+   reference app carries. */
+@source "../../node_modules/streamdown/dist/**/*.js";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -29,7 +29,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className="min-h-full flex flex-col">
+      {/* h-dvh, not min-h-full: min-height let the body grow with the
+          conversation, so `flex-1` never resolved to a bounded height, the
+          message scroller's overflow-y-auto never engaged, and the whole
+          document scrolled instead — pushing the composer off the bottom of
+          the screen. A definite viewport height is what makes the chat scroll
+          inside itself. h-dvh over h-screen so mobile URL-bar resize doesn't
+          clip it. overflow-hidden stops a second, document-level scrollbar. */}
+      <body className="flex h-dvh flex-col overflow-hidden">
         <ClerkProvider>
           <TooltipProvider>
             <PersonaProvider>{children}</PersonaProvider>

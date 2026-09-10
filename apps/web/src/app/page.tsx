@@ -8,8 +8,13 @@ export default function Home() {
   return (
     <>
       <Show when="signed-out">
-        <div className="flex flex-1 items-center justify-center">
-          <SignIn />
+        {/* m-auto on the child rather than items-center/justify-center on the
+            scroller: a flex-centred child taller than its container overflows
+            above the scroll origin and can't be scrolled back into view. */}
+        <div className="flex flex-1 overflow-y-auto">
+          <div className="m-auto">
+            <SignIn />
+          </div>
         </div>
       </Show>
       <Show when="signed-in">

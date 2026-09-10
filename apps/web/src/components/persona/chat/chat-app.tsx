@@ -11,11 +11,10 @@ import {
   ChatEmptyState,
   InterruptPanel,
   SubagentSheet,
+  PresentedFileSheet,
   VoiceIndicator,
 } from "@/components/persona/chat";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
-import { Button } from "@/components/ui/button";
-import { MicrophoneIcon } from "@phosphor-icons/react";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_PERSONA_AGENT_ID;
@@ -28,11 +27,23 @@ function ChatApp() {
   const {
     threads,
     isLoading: threadsLoading,
+    error: threadsError,
     createThread,
     renameThread,
     deleteThread,
-  } = useThreads(false);
+  } = useThreads(true);
   const [threadId, setThreadId] = React.useState<string | null>(null);
+
+  // Deliberately NO auto-select on load. There used to be a rule here that
+  // grabbed threads[0] whenever nothing was selected. threads[0] is the
+  // newest thread, and the newest thread is very often an empty one left
+  // behind by a previous send or "New chat" — so every page load fired a
+  // history fetch for a thread the user never asked for and then landed on
+  // "How can I help?" even when real conversations existed. It also silently
+  // pointed the composer at an existing thread, so a stray send went into
+  // someone's old conversation instead of a new one. Opening a fresh chat is
+  // the correct landing state; `ensureThreadId` below creates a real thread
+  // on the first send, which is what the old rule was there to guarantee.
 
   const voice = useVoice({ agentId: AGENT_ID, threadId: threadId ?? undefined });
   const chat = useChat({ agentId: AGENT_ID, threadId: threadId ?? undefined, voice });
@@ -60,21 +71,73 @@ function ChatApp() {
     [chat.messages]
   );
 
-  // Clear before load, not after — avoids a StrictMode double-invoke race
-  // that would otherwise interleave stale and freshly-loaded messages.
+  // One loader, not two. useChat already auto-loads a thread's history whenever
+  // `threadId` changes to one it hasn't loaded and `messages` is empty (its own
+  // auto-load effect). Calling loadThreadMessages ourselves on top of that left
+  // TWO fetches in flight for different threads with no ordering guarantee — the
+  // stale one resolved last and overwrote the thread the user actually clicked,
+  // which is what "can't load existing messages" was. Clearing the messages and
+  // setting the id in the SAME tick lets React batch them into a single render,
+  // so the SDK's effect sees an empty list and exactly one id to fetch.
   const switchToThread = React.useCallback(
-    async (id: string) => {
+    (id: string) => {
+      if (id === threadId) return;
       chat.setMessages([]);
-      await chat.loadThreadMessages(id);
       setThreadId(id);
     },
-    [chat]
+    [chat, threadId]
   );
 
   const handleNewChat = React.useCallback(async () => {
     const thread = await createThread(AGENT_ID);
-    await switchToThread(thread._id);
-  }, [createThread, switchToThread]);
+    chat.setMessages([]);
+    setThreadId(thread._id);
+  }, [createThread, chat]);
+
+  // Deleting the open thread would otherwise leave threadId pointing at a
+  // record the server no longer has. Clearing it hands off to the
+  // keep-a-thread-selected rule above, which picks the next newest one.
+  const handleDeleteThread = React.useCallback(
+    (id: string) => {
+      void deleteThread(id);
+      if (id !== threadId) return;
+      chat.setMessages([]);
+      setThreadId(null);
+    },
+    [deleteThread, threadId, chat]
+  );
+
+  // Sending with no thread selected (the very first message of a fresh
+  // conversation) used to fire chat.sendMessage() with threadId: null — the
+  // reply streamed in and looked fine, but nothing was ever attached to a
+  // real, listed thread, so it vanished on reload. sendMessage's own
+  // overrideOptions.threadId accepts a Promise for exactly this case (its
+  // optimistic UI update runs immediately; it only awaits the promise right
+  // before the actual request) — lazily create the thread and hand that
+  // promise straight to sendMessage instead of pre-awaiting it ourselves.
+  const ensureThreadId = React.useCallback((): string | Promise<string> => {
+    if (threadId) return threadId;
+    return createThread(AGENT_ID).then((thread) => {
+      setThreadId(thread._id);
+      return thread._id;
+    });
+  }, [threadId, createThread]);
+
+  // Refuse to send while a history fetch is in flight. The SDK's
+  // loadThreadMessages ends with an ABSOLUTE setMessages(loaded) (not a
+  // functional update), so a fetch that started before the send resolves
+  // after it and replaces the optimistic user message + assistant
+  // placeholder with the stored history. The stream then keeps writing into
+  // a message id that is no longer in the list, and the sent message never
+  // appears. Waiting the fetch out removes the overlap entirely; the input
+  // text is untouched, so nothing the user typed is lost.
+  const handleSend = React.useCallback(
+    (text?: string) => {
+      if (chat.isLoadingHistory) return;
+      void chat.sendMessage(text, { threadId: ensureThreadId() });
+    },
+    [chat, ensureThreadId]
+  );
 
   const activeSubagentActivity: PersonaSubagentActivityEntry[] = React.useMemo(() => {
     if (!openSubagentToolCallId) return [];
@@ -110,26 +173,41 @@ function ChatApp() {
         threads={threads}
         activeThreadId={threadId}
         isLoading={threadsLoading}
+        error={threadsError}
         onSelectThread={switchToThread}
         onCreateThread={handleNewChat}
         onRenameThread={renameThread}
-        onDeleteThread={deleteThread}
+        onDeleteThread={handleDeleteThread}
       />
 
       <div className="flex flex-1 flex-col min-h-0">
-        {grouped.length === 0 ? (
+        {/* `&& grouped.length === 0`, not a bare isLoadingHistory: a history
+            fetch used to blank the conversation while it was in flight, so a
+            message sent during one vanished from the screen until the fetch
+            resolved (and the fetch could have started before the send, from a
+            previous thread click). Only show the placeholder when there is
+            genuinely nothing to show yet. */}
+        {chat.isLoadingHistory && grouped.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+            Loading chat…
+          </div>
+        ) : grouped.length === 0 ? (
           <ChatEmptyState title="How can I help?" />
         ) : (
           <ChatScroller>
             {grouped.map(({ message, reasoning }) => (
-              <ChatScrollerItem key={message.id}>
+              // messageId registers the element with the scroller so it can
+              // track what's visible, hold a scroll anchor across prepends,
+              // and resolve scrollToMessage. The primitive skips any item
+              // without it.
+              <ChatScrollerItem key={message.id} messageId={message.id}>
                 <ChatMessage
                   message={message}
                   reasoning={reasoning}
                   todos={chat.todos}
                   onOpenSubagent={setOpenSubagentToolCallId}
                   onOpenWorkspaceFile={chat.openWorkspaceFile}
-                  onSendMessage={(text) => chat.sendMessage(text)}
+                  onSendMessage={(text) => handleSend(text)}
                 />
               </ChatScrollerItem>
             ))}
@@ -146,30 +224,30 @@ function ChatApp() {
           </div>
         )}
 
+        {/* A failed history fetch leaves `messages` empty and only sets
+            `error` — so an unauthenticated or errored load rendered as a
+            silent "How can I help?" on a thread that really does have
+            messages. Surface it instead of letting it read as an empty chat. */}
+        {chat.error ? (
+          <div className="px-4 pb-2 text-center text-xs text-destructive">
+            {chat.error.message}
+          </div>
+        ) : null}
+
         {isVoiceActive && (
           <div className="flex justify-center py-2">
             <VoiceIndicator state={voice.state} />
           </div>
         )}
 
-        <div className="flex items-end gap-2 border-t border-border p-3">
-          {!isVoiceActive && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Start voice"
-              onClick={() => voice.start()}
-            >
-              <MicrophoneIcon />
-            </Button>
-          )}
-          <div className="flex-1">
+        <div className="border-t border-border p-3">
+          <div className="mx-auto w-full max-w-3xl">
             <ChatComposer
               value={chat.input}
               onChange={chat.setInput}
-              onSend={() => chat.sendMessage()}
+              onSend={() => handleSend()}
               onStop={chat.stop}
+              onStartVoice={() => voice.start()}
               onStopVoice={voice.stop}
               onSendToVoice={voice.sendText}
               isStreaming={chat.isStreaming}
@@ -183,6 +261,16 @@ function ChatApp() {
         open={openSubagentToolCallId !== null}
         onOpenChange={(open) => !open && setOpenSubagentToolCallId(null)}
         activity={activeSubagentActivity}
+      />
+
+      <PresentedFileSheet
+        presentedFile={chat.presentedFile}
+        content={
+          chat.presentedFile
+            ? chat.files[chat.presentedFile.path]?.content
+            : undefined
+        }
+        onOpenChange={(open) => !open && chat.dismissPresentedFile()}
       />
     </div>
   );

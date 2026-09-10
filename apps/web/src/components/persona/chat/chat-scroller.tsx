@@ -24,7 +24,12 @@ function ChatScroller({
   ...props
 }: React.ComponentProps<typeof MessageScroller>) {
   return (
-    <MessageScrollerProvider>
+    // autoScroll is opt-in and defaults to false — the primitive ships with
+    // "stick to bottom" machinery wired up but switched off, so without this
+    // a reply streams in below the fold and the view just sits where it was.
+    // defaultScrollPosition already defaults to "end", so opening a thread
+    // lands at the newest message rather than the top.
+    <MessageScrollerProvider autoScroll>
       <MessageScroller className={cn("flex-1", className)} {...props}>
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
