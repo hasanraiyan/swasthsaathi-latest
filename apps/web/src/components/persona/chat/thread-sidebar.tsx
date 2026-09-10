@@ -61,9 +61,23 @@ function ThreadRow({
 
   return (
     <Item
-      variant={active ? "muted" : "default"}
       size="sm"
-      className={cn("w-full min-w-0 cursor-pointer", !editing && "group/thread")}
+      // Row padding is overridden rather than inherited from `size="sm"`. That
+      // variant's `py-2.5`/`px-3` is a comfortable menu-row rhythm, but a thread
+      // list is a dense index — 10px above and 10px below every title reads as
+      // a gap *between* rows rather than padding inside them.
+      //
+      // The active fill is set here as an opaque token rather than left to the
+      // `muted` variant: that variant paints `bg-muted/50`, and the row actions
+      // (which now float *over* the title) need a mask that fully hides the
+      // text beneath them. Translucent would let the title show through the
+      // buttons. `relative` is what makes the actions' `absolute` resolve
+      // against this row.
+      className={cn(
+        "relative w-full min-w-0 cursor-pointer px-2 py-1.5",
+        active && "bg-sidebar-accent",
+        !editing && "group/thread"
+      )}
       onClick={editing ? undefined : onSelect}
     >
       <ItemContent className="min-w-0">
@@ -84,7 +98,8 @@ function ThreadRow({
           // `w-full` overrides the primitive's own `w-fit`. With `w-fit` a
           // long title sizes the element to its content instead of to the
           // available width, so `truncate` has no overflow to clip and the
-          // title runs under the row actions instead of ellipsing.
+          // title would run past the row instead of ellipsing. The row is the
+          // title's to fill now that the actions float over it.
           <ItemTitle className="w-full min-w-0 truncate">
             {thread.title || "New chat"}
           </ItemTitle>
@@ -92,13 +107,29 @@ function ThreadRow({
       </ItemContent>
 
       {!editing && (
-        // Touch devices have no hover, so the row actions can't be
-        // hover-revealed alone — they're always present once the row is
-        // active, and hover-revealed otherwise.
+        // Floating, not a column of their own: the title keeps the whole row
+        // to truncate across, and these ride over its tail instead of pushing
+        // it short. The gradient is the mask — it goes from the row's own
+        // colour at the right edge to transparent at the left, so the title
+        // appears to fade out under the buttons rather than being cut off.
+        //
+        // Touch devices have no hover, so a live row shows its actions
+        // permanently and a hovered one reveals them. While hidden they are
+        // `pointer-events-none` too — `opacity-0` alone still leaves them
+        // clickable, so the right edge of every row would swallow taps meant
+        // for the row itself. Focus-within covers the keyboard path, where
+        // tabbing to an invisible button would otherwise be a dead stop.
         <ItemActions
           className={cn(
-            "shrink-0 transition-opacity",
-            active ? "opacity-100" : "opacity-0 group-hover/thread:opacity-100"
+            "absolute inset-y-0 right-0 gap-0.5 pr-1 pl-8",
+            "bg-gradient-to-l to-transparent",
+            active
+              ? "from-sidebar-accent via-sidebar-accent"
+              : "from-sidebar via-sidebar",
+            "transition-opacity",
+            active
+              ? "opacity-100"
+              : "pointer-events-none opacity-0 group-hover/thread:pointer-events-auto group-hover/thread:opacity-100 group-focus-within/thread:pointer-events-auto group-focus-within/thread:opacity-100"
           )}
         >
           <Button
@@ -215,7 +246,7 @@ function ThreadSidebar({
         </Button>
       </SidebarHeader>
 
-      <SidebarContent className="gap-1 p-2">
+      <SidebarContent className="gap-0.5 p-1.5">
         {isLoading ? (
           <div className="p-2 text-xs text-muted-foreground">Loading…</div>
         ) : error ? (

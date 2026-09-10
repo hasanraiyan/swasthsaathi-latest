@@ -16,7 +16,9 @@ import {
 } from "@/components/persona/chat";
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
+import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { MicrophoneIcon, MicrophoneSlashIcon, PhoneXIcon } from "@phosphor-icons/react";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
 import { buildWorkspace } from "@/lib/persona/workspace-replay";
 
@@ -82,6 +84,54 @@ function ChatApp() {
     () => groupMessagesWithReasoning(chat.messages),
     [chat.messages]
   );
+
+  // The user's own voice turn is the one line the SDK can lose.
+  //
+  // `useChat`'s voice→chat merge (dist/index.js:544) advances its private
+  // "already merged" pointer to `voice.transcript.length` whenever the voice
+  // state is not active — and `stop()` sets that state to "idle" synchronously.
+  // The last thing anyone does before hanging up is talk, so the final
+  // utterance routinely lands in that window and is swallowed; the agent's
+  // reply was merged earlier, mid-call, which is why only the *user's* line
+  // goes missing. `voice.partial` is the only place that utterance still
+  // exists, since `handleTranscript` never commits it to `transcript`.
+  //
+  // So mirror both sources and subtract what the chat already shows. The
+  // subtraction is exact, not fuzzy: the SDK's merge writes precisely
+  // `line.text.trim()` into the message it appends, so a trimmed match proves
+  // the line landed and a non-match proves it didn't. Deriving the echo
+  // instead of writing it into `chat.messages` is what makes this safe — it
+  // cannot double a message, cannot fight the SDK's own state, and disappears
+  // on its own the moment the real message arrives.
+  const voiceUserEcho = React.useMemo(() => {
+    const texts: string[] = [];
+    for (const line of voice.transcript) {
+      if (line.speaker !== "user") continue;
+      const text = (line.text ?? "").trim();
+      if (text && !texts.includes(text)) texts.push(text);
+    }
+    // What the user is saying right now, which has no transcript line yet.
+    const speaking =
+      voice.partial?.speaker === "user" ? (voice.partial.text ?? "").trim() : "";
+    if (speaking && !texts.includes(speaking)) texts.push(speaking);
+
+    return texts
+      .filter(
+        (text) =>
+          !chat.messages.some(
+            (m) => m.role === "user" && m.content.trim() === text
+          )
+      )
+      .map((text, i) => ({
+        id: `voice-echo-${i}`,
+        message: {
+          id: `voice-echo-${i}`,
+          role: "user" as const,
+          content: text,
+          createdAt: new Date(),
+        },
+      }));
+  }, [voice.transcript, voice.partial, chat.messages]);
 
   // What the preview sheet resolves against.
   //
@@ -170,6 +220,16 @@ function ChatApp() {
     [chat, ensureThreadId]
   );
 
+  // Every `start()` opens a brand-new mic track, but `isMuted` is never reset
+  // by the SDK — so a mute left over from the previous call would leave the
+  // button reading "muted" while the new microphone is actually live. `mute()`
+  // only reaches for a stream if one exists, so clearing it before the track
+  // does is safe.
+  const handleStartVoice = React.useCallback(() => {
+    voice.mute(false);
+    voice.start();
+  }, [voice]);
+
   const activeSubagentActivity: PersonaSubagentActivityEntry[] = React.useMemo(() => {
     if (!openSubagentToolCallId) return [];
     for (const m of chat.messages) {
@@ -179,8 +239,7 @@ function ChatApp() {
     return [];
   }, [chat.messages, openSubagentToolCallId]);
 
-  const handleDecideHitl = (actionIndex: number, decision: "approve" | "reject") => {
-    if (!chat.interrupt || chat.interrupt.kind !== "hitl") return;
+  const handleDecideHitl = (actionIndex: number, decision: "approve" | "reject") => {    if (!chat.interrupt || chat.interrupt.kind !== "hitl") return;
     const next = { ...hitlDecisions, [actionIndex]: decision };
     setHitlDecisions(next);
 
@@ -225,11 +284,11 @@ function ChatApp() {
             resolved (and the fetch could have started before the send, from a
             previous thread click). Only show the placeholder when there is
             genuinely nothing to show yet. */}
-        {chat.isLoadingHistory && grouped.length === 0 ? (
+        {chat.isLoadingHistory && grouped.length === 0 && voiceUserEcho.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             Loading chat…
           </div>
-        ) : grouped.length === 0 ? (
+        ) : grouped.length === 0 && voiceUserEcho.length === 0 ? (
           <ChatEmptyState title="How can I help?" />
         ) : (
           <ChatScroller>
@@ -249,6 +308,15 @@ function ChatApp() {
                   onOpenWorkspaceFile={setOpenFilePath}
                   onSendMessage={(text) => handleSend(text)}
                 />
+              </ChatScrollerItem>
+            ))}
+
+            {/* Voice utterances the SDK's merge never committed — see
+                voiceUserEcho above. They render as ordinary user turns so a
+                salvaged line is indistinguishable from a merged one. */}
+            {voiceUserEcho.map(({ id, message }) => (
+              <ChatScrollerItem key={id} messageId={id}>
+                <ChatMessage message={message} />
               </ChatScrollerItem>
             ))}
           </ChatScroller>
@@ -278,8 +346,36 @@ function ChatApp() {
           // Voice mode's whole surface is the orb — a live call has no
           // transcript panel here, so it renders at its own size rather than
           // as a badge beside the composer.
-          <div className="flex justify-center py-4">
+          //
+          // The call controls sit directly under it rather than only in the
+          // composer: mid-call the orb is what the user is looking at, while
+          // the composer's row is at the far bottom of the window.
+          <div className="flex flex-col items-center gap-4 py-4">
             <VoiceIndicator state={voice.state} />
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon-lg"
+                aria-label="End call"
+                onClick={voice.stop}
+              >
+                <PhoneXIcon />
+              </Button>
+              <Button
+                type="button"
+                // Filled while muted, so the state reads at a glance rather
+                // than only from which glyph is showing.
+                variant={voice.isMuted ? "default" : "outline"}
+                size="icon-lg"
+                aria-label={voice.isMuted ? "Unmute microphone" : "Mute microphone"}
+                aria-pressed={voice.isMuted}
+                onClick={() => voice.mute(!voice.isMuted)}
+              >
+                {voice.isMuted ? <MicrophoneSlashIcon /> : <MicrophoneIcon />}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -290,7 +386,7 @@ function ChatApp() {
               onChange={chat.setInput}
               onSend={() => handleSend()}
               onStop={chat.stop}
-              onStartVoice={() => voice.start()}
+              onStartVoice={handleStartVoice}
               onStopVoice={voice.stop}
               onSendToVoice={voice.sendText}
               isStreaming={chat.isStreaming}
