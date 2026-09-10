@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ArrowUpIcon, SquareIcon } from "@phosphor-icons/react";
+import { Spinner } from "@/components/ui/spinner";
 import { InputGroup, InputGroupTextarea, InputGroupAddon, InputGroupButton } from "@/components/ui/input-group";
 
 // Same "start voice mode" glyph NotebookChat.js's ComposerForm uses (a
@@ -39,6 +40,7 @@ function VoiceModeIcon(props: React.SVGProps<SVGSVGElement>) {
  * to shrink the idle composer into a short stub, so it is never conditionally
  * unmounted. Which action the row shows is computed by the caller:
  *
+ *   loading history → spinner (the send is not available yet)
  *   streaming   → stop generating
  *   voice live  → send the typed text into the call
  *   idle, empty → start voice mode
@@ -72,6 +74,7 @@ function ChatComposer({
   onSendToVoice,
   isStreaming = false,
   isVoiceActive = false,
+  isLoadingHistory = false,
   disabled = false,
   placeholder,
 }: {
@@ -85,13 +88,18 @@ function ChatComposer({
   onSendToVoice?: (text: string) => void;
   isStreaming?: boolean;
   isVoiceActive?: boolean;
+  /** A thread's history is still being fetched. Sending is withheld until it
+   * lands (the fetch's own `setMessages` is absolute and would wipe the
+   * optimistic message), so the slot shows a spinner rather than a live send
+   * button whose only behaviour would be to do nothing. */
+  isLoadingHistory?: boolean;
   disabled?: boolean;
   placeholder?: string;
 }) {
   const trimmed = value.trim();
 
   const submit = () => {
-    if (!trimmed) return;
+    if (!trimmed || isLoadingHistory) return;
     if (isVoiceActive) {
       onSendToVoice?.(trimmed);
     } else if (!isStreaming) {
@@ -130,7 +138,20 @@ function ChatComposer({
         />
 
         <InputGroupAddon align="block-end" className="justify-end">
-          {isStreaming ? (
+          {isLoadingHistory ? (
+            // `size-7` matches `size="icon-sm"` exactly, so the slot occupies
+            // the same box and the row does not resize as the fetch settles.
+            // A plain span, not a disabled button — there is nothing to press,
+            // and a disabled control would grey the whole InputGroup out from
+            // under the field the user is still typing into.
+            <span
+              className="flex size-7 items-center justify-center"
+              role="status"
+              aria-label="Loading conversation"
+            >
+              <Spinner className="size-4 text-muted-foreground" />
+            </span>
+          ) : isStreaming ? (
             <InputGroupButton
               type="button"
               variant="secondary"

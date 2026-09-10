@@ -9,6 +9,7 @@ import {
   ChatMessage,
   ChatComposer,
   ChatEmptyState,
+  ChatHistorySkeleton,
   InterruptPanel,
   SubagentSheet,
   PresentedFileSheet,
@@ -152,6 +153,60 @@ function ChatApp() {
     [threads, threadId]
   );
 
+  // Is a thread's history still on its way? The pane has to know, because
+  // "no messages" is ambiguous: it means either "this thread is empty" (show
+  // the blank-chat state) or "this thread's messages haven't arrived yet"
+  // (show the skeleton). Getting that wrong is what made switching threads
+  // feel stuck — the empty state painted "How can I help?" over a conversation
+  // that was in flight, so a click looked like it had thrown the thread away.
+  //
+  // The SDK's own `isLoadingHistory` cannot answer it on the frame the switch
+  // lands. `switchToThread` clears the messages and sets the id in one render,
+  // and the fetch is started from a *passive* effect one render later
+  // (dist/index.js:522-542, which sets the flag at :467) — so on that first
+  // render "not loading" and "finished loading" are the same value, false.
+  // Only a genuine true→false edge proves a load began and came back empty.
+  const [historyPending, setHistoryPending] = React.useState(false);
+  const sawHistoryLoadingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!historyPending) {
+      sawHistoryLoadingRef.current = false;
+      return;
+    }
+    // Content landed — done.
+    if (chat.messages.length > 0) {
+      setHistoryPending(false);
+      return;
+    }
+    // A switch made while a reply is still streaming cannot produce a fetch at
+    // all: the SDK's auto-load opens with `if (!threadId || isStreaming)
+    // return;` (dist/index.js:523). The edge this waits for would therefore
+    // never come and the skeleton would sit there for good — a worse failure
+    // than the one being fixed, since it never resolves. Release instead and
+    // let the empty state hold the pane until the stream ends, at which point
+    // the SDK's own effect finally fires and the history arrives.
+    if (chat.isStreaming) {
+      setHistoryPending(false);
+      return;
+    }
+    if (chat.isLoadingHistory) {
+      sawHistoryLoadingRef.current = true;
+      return;
+    }
+    // A load this switch started has since finished and found nothing, so the
+    // thread really is empty (or the fetch failed, in which case `chat.error`
+    // is rendered below the pane) and the empty state is the honest thing to
+    // show.
+    //
+    // Deliberately NOT keyed on `chat.error`: a failure from a *previous*
+    // thread is still in state when the next switch begins, and treating that
+    // stale error as this switch settling would drop the skeleton for the
+    // whole of the real load. The true→false edge above already covers the
+    // failing case, so the error branch would only ever fire early.
+    if (sawHistoryLoadingRef.current) setHistoryPending(false);
+  }, [historyPending, chat.isLoadingHistory, chat.isStreaming, chat.messages.length]);
+
   // One loader, not two. useChat already auto-loads a thread's history whenever
   // `threadId` changes to one it hasn't loaded and `messages` is empty (its own
   // auto-load effect). Calling loadThreadMessages ourselves on top of that left
@@ -165,6 +220,8 @@ function ChatApp() {
       if (id === threadId) return;
       chat.setMessages([]);
       setThreadId(id);
+      setHistoryPending(true);
+      sawHistoryLoadingRef.current = false;
     },
     [chat, threadId]
   );
@@ -184,6 +241,10 @@ function ChatApp() {
       if (id !== threadId) return;
       chat.setMessages([]);
       setThreadId(null);
+      // The thread that was loading no longer exists, so nothing is coming
+      // for it — leaving the flag set would strand the skeleton over the
+      // empty state that should follow the delete.
+      setHistoryPending(false);
     },
     [deleteThread, threadId, chat]
   );
@@ -304,16 +365,15 @@ function ChatApp() {
       <SidebarInset className="flex min-h-0 flex-col">
         <ChatHeader threadTitle={activeThreadTitle} onNewChat={handleNewChat} />
 
-        {/* `&& grouped.length === 0`, not a bare isLoadingHistory: a history
-            fetch used to blank the conversation while it was in flight, so a
-            message sent during one vanished from the screen until the fetch
-            resolved (and the fetch could have started before the send, from a
-            previous thread click). Only show the placeholder when there is
-            genuinely nothing to show yet. */}
-        {chat.isLoadingHistory && grouped.length === 0 && voiceUserEcho.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            Loading chat…
-          </div>
+        {/* Order matters here. `historyPending` is checked first so an empty
+            message list reads as "still coming" rather than as "nothing here",
+            which is what put the blank-chat state over a thread that was
+            loading. Both are guarded on `grouped.length === 0` too, so the
+            moment real messages land they win immediately — the flag can lag a
+            render behind the fetch and must never paint over delivered
+            content. */}
+        {historyPending && grouped.length === 0 && voiceUserEcho.length === 0 ? (
+          <ChatHistorySkeleton />
         ) : grouped.length === 0 && voiceUserEcho.length === 0 ? (
           <ChatEmptyState title="How can I help?" />
         ) : (
@@ -416,6 +476,7 @@ function ChatApp() {
               onSendToVoice={handleSendToVoice}
               isStreaming={chat.isStreaming}
               isVoiceActive={isVoiceActive}
+              isLoadingHistory={chat.isLoadingHistory}
             />
           </div>
         </div>

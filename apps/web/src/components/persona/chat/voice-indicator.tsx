@@ -20,10 +20,18 @@ const STATE_LABELS: Record<VoiceCallState, string> = {
 };
 
 /** Tailwind's `size-*`/inline width can't express this, and Orb reads
- * `--orb-ui-size` in preference to its numeric `size` prop — so the orb is
- * sized by that variable and stays legible from a 360px phone up to a
- * desktop, where a fixed px value would either overflow or look lost. */
-const RESPONSIVE_SIZE = "min(62vw, 240px)";
+ * `--orb-ui-size` in preference to its numeric `size` prop — the bundle sizes
+ * its root as `width: var(--orb-ui-size, ${size}px)`, so the variable wins.
+ * The orb is therefore sized here and stays legible from a 360px phone up to a
+ * desktop, where a fixed px value would either overflow or look lost.
+ *
+ * The `vh` term is the one that is not about width. Voice controls sit *under*
+ * the orb and the composer sits under those, all inside one flex column, so a
+ * 240px orb plus its buttons is ~320px of a viewport that a landscape phone
+ * may only be 400px tall — leaving the message list squeezed to nothing. The
+ * clamp only bites on viewports that short; anywhere with room, 240px still
+ * wins, which is the intended size on every normal screen. */
+const RESPONSIVE_SIZE = "min(62vw, 240px, 44vh)";
 
 /**
  * The animated voice-state orb — same `orb-ui` package NotebookChat.js (the

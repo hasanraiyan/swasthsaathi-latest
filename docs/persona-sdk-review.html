@@ -1,0 +1,1108 @@
+<title>Persona 0.7.10 Defect Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground: #f4f7f8;
+    --surface: #ffffff;
+    --surface-sunk: #eef2f4;
+    --ink: #131a1e;
+    --ink-muted: #586870;
+    --ink-faint: #7d8c94;
+    --rule: #dbe4e7;
+    --rule-strong: #c3d0d5;
+    --accent: #0d6a72;
+    --accent-soft: #e2eff0;
+    --crit: #9e1b23;
+    --high: #96590a;
+    --med: #4f5a68;
+    --note: #6f7c85;
+    --shadow: 0 1px 2px rgba(19, 26, 30, 0.05), 0 6px 18px -10px rgba(19, 26, 30, 0.16);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101519;
+      --surface: #161d22;
+      --surface-sunk: #1c242a;
+      --ink: #e7eef1;
+      --ink-muted: #9aa9b2;
+      --ink-faint: #7d8b95;
+      --rule: #263138;
+      --rule-strong: #35434c;
+      --accent: #4fc0c8;
+      --accent-soft: #143036;
+      --crit: #f0828a;
+      --high: #e2a44e;
+      --med: #a3b1bd;
+      --note: #8c99a3;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -10px rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #101519;
+    --surface: #161d22;
+    --surface-sunk: #1c242a;
+    --ink: #e7eef1;
+    --ink-muted: #9aa9b2;
+    --ink-faint: #7d8b95;
+    --rule: #263138;
+    --rule-strong: #35434c;
+    --accent: #4fc0c8;
+    --accent-soft: #143036;
+    --crit: #f0828a;
+    --high: #e2a44e;
+    --med: #a3b1bd;
+    --note: #8c99a3;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -10px rgba(0, 0, 0, 0.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 56px 96px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(29px, 5.2vw, 40px);
+    line-height: 1.1;
+    letter-spacing: -0.021em;
+    text-wrap: balance;
+    margin: 14px 0 0;
+  }
+
+  .lede {
+    margin: 16px 0 0;
+    max-width: 64ch;
+    color: var(--ink-muted);
+    font-size: 16.5px;
+  }
+
+  /* --- provenance strip: what this review actually covers --- */
+  .provenance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .prov {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .prov dt {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .prov dd {
+    margin: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  /* --- tally --- */
+  .tally {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 0;
+    margin-top: 34px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+  }
+  .tally div {
+    padding: 16px 18px;
+    border-left: 1px solid var(--rule);
+  }
+  .tally div:first-child { border-left: 0; }
+  .tally .n {
+    display: block;
+    font-family: Archivo, sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tally .k {
+    display: block;
+    margin-top: 7px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .tally .t-crit .n { color: var(--crit); }
+  .tally .t-high .n { color: var(--high); }
+  .tally .t-med .n { color: var(--med); }
+  .tally .t-note .n { color: var(--note); }
+
+  /* --- method note --- */
+  .method {
+    margin-top: 26px;
+    padding: 16px 18px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    font-size: 14.5px;
+    color: var(--ink-muted);
+  }
+  .method strong { color: var(--ink); font-weight: 600; }
+  .method p { margin: 0; }
+  .method p + p { margin-top: 9px; }
+
+  /* --- sections --- */
+  section { margin-top: 62px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  h2 {
+    font-family: Archivo, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.014em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sec-count {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .sec-note {
+    margin: 14px 0 0;
+    max-width: 66ch;
+    font-size: 14.5px;
+    color: var(--ink-muted);
+  }
+
+  /* --- findings --- */
+  .finding {
+    margin-top: 30px;
+    padding: 0 0 0 18px;
+    border-left: 3px solid var(--rule-strong);
+  }
+  .finding[data-sev="critical"] { border-left-color: var(--crit); }
+  .finding[data-sev="high"] { border-left-color: var(--high); }
+  .finding[data-sev="medium"] { border-left-color: var(--med); }
+  .finding[data-sev="note"] { border-left-color: var(--rule-strong); }
+
+  .f-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+  .f-id {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .sev {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding: 2.5px 7px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .sev.critical { color: var(--crit); }
+  .sev.high { color: var(--high); }
+  .sev.medium { color: var(--med); }
+  .sev.note { color: var(--note); }
+
+  .f-title {
+    font-family: Archivo, sans-serif;
+    font-size: 17.5px;
+    font-weight: 600;
+    letter-spacing: -0.009em;
+    line-height: 1.34;
+    text-wrap: balance;
+  }
+
+  .f-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+  .f-meta code { color: var(--accent); font-weight: 500; }
+  .f-meta .ev { letter-spacing: 0.05em; }
+
+  .finding p {
+    margin: 11px 0 0;
+    max-width: 68ch;
+  }
+  .finding p code,
+  .method code,
+  .sec-note code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.875em;
+    background: var(--surface-sunk);
+    padding: 1.5px 5px;
+    color: var(--ink);
+  }
+
+  .fix {
+    margin-top: 13px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    max-width: 68ch;
+  }
+  .fix-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 5px;
+  }
+  .fix p { margin: 0; font-size: 14.5px; color: var(--ink-muted); }
+  .fix p + p { margin-top: 7px; }
+
+  /* --- closing shortlist --- */
+  .shortlist { margin-top: 30px; display: flex; flex-direction: column; gap: 2px; }
+  .sl-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+  }
+  .sl-n {
+    font-family: Archivo, sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  .sl-body { min-width: 0; }
+  .sl-body b {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.005em;
+  }
+  .sl-body span {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    color: var(--ink-muted);
+  }
+
+  footer {
+    margin-top: 66px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+  }
+
+  @media (max-width: 520px) {
+    .wrap { padding-inline: 18px; padding-block: 40px 72px; }
+    .tally div { padding: 13px 14px; }
+    .tally .n { font-size: 24px; }
+    .finding { padding-left: 14px; }
+    .f-title { font-size: 16.5px; }
+    .f-meta { font-size: 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Dependency review</div>
+    <h1>Persona React SDK</h1>
+    <p class="lede">
+      Every defect found while integrating <code>@personaai/react</code> into SwasthSaathi's chat and
+      voice surface — the ones that cost time, and the ones that would have, found by reading the
+      source after the fact.
+    </p>
+
+    <dl class="provenance">
+      <div class="prov"><dt>Package</dt><dd>@personaai/react</dd></div>
+      <div class="prov"><dt>Version</dt><dd>0.7.10</dd></div>
+      <div class="prov"><dt>Artifact</dt><dd>dist/index.js</dd></div>
+      <div class="prov"><dt>Size</dt><dd>2101 lines</dd></div>
+      <div class="prov"><dt>Findings</dt><dd>24</dd></div>
+    </dl>
+
+    <div class="tally">
+      <div class="t-crit"><span class="n">2</span><span class="k">Critical</span></div>
+      <div class="t-high"><span class="n">8</span><span class="k">High</span></div>
+      <div class="t-med"><span class="n">8</span><span class="k">Medium</span></div>
+      <div class="t-note"><span class="n">6</span><span class="k">Note</span></div>
+    </div>
+
+    <div class="method">
+      <p>
+        <strong>Where the evidence comes from.</strong> Findings marked <em>observed</em> produced a
+        visible failure in this app — a user-reported symptom, or a test harness. Findings marked
+        <em>read</em> were derived from the shipped source and traced to a line, but not exercised at
+        runtime; they are stated as mechanisms, not as reproductions.
+      </p>
+      <p>
+        Line numbers are <code>dist/index.js</code> at 0.7.10. The built bundle is what runs, so these
+        are the shipped semantics regardless of what the TypeScript source says.
+      </p>
+    </div>
+  </header>
+
+  <!-- ================= PART A ================= -->
+  <section>
+    <div class="sec-head">
+      <h2>Bit us during the build</h2>
+      <span class="sec-count">8 findings · all worked around</span>
+    </div>
+    <p class="sec-note">
+      These are the ones that produced a visible bug or forced application-level code to compensate.
+      Each carries the workaround that shipped, and the change that would remove the need for it.
+    </p>
+
+    <article class="finding" data-sev="critical">
+      <h3 class="f-head">
+        <span class="f-id">A1</span>
+        <span class="sev critical">Critical</span>
+        <span class="f-title">The last thing the user says before hanging up is discarded</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">observed</span>
+        <span><code>index.js:558–568</code> merge · <code>:1520</code> stop</span>
+      </div>
+      <p>
+        The voice→chat merge tracks how much of <code>voice.transcript</code> it has already written
+        into <code>messages</code> with a private <code>voicePrevLenRef</code>. When the voice state is
+        not active it does not merge — it <em>fast-forwards that pointer past everything it has not
+        seen</em>. And <code>stop()</code> sets the state to <code>"idle"</code> synchronously, before
+        the final line of the closing utterance has been delivered. The last utterance therefore lands
+        entirely inside the non-active window and is skipped permanently.
+      </p>
+      <p>
+        The agent's own reply usually survives, because it merged mid-call while the state was still
+        active — which is why the failure presents as “only the user's line is missing,” and why it
+        reads as a rendering bug rather than as data loss.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          A derived <code>voiceUserEcho</code> memo mirrors <code>voice.transcript</code> and
+          <code>voice.partial</code> and subtracts what the chat already shows. The subtraction is
+          exact — the merge writes precisely <code>line.text.trim()</code> — so it can neither double a
+          message nor fight the SDK's state.
+        </p>
+        <p>
+          Proper fix: when inactive, merge the unseen lines <em>before</em> advancing the pointer.
+          Or have <code>stop()</code> flush pending transcript lines before setting idle.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">A2</span>
+        <span class="sev high">High</span>
+        <span class="f-title">The user's in-progress utterance is never rendered at all</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:592</code></span>
+      </div>
+      <p>
+        The merge renders <code>voice.partial</code> only when
+        <code>partial.speaker === "agent"</code>. A user partial is dropped by construction, and
+        <code>handleTranscript</code> never commits a non-final line to <code>transcript</code> — so
+        while the user is speaking there is no source anywhere in the SDK that shows what they said.
+        The only chance a user turn has of appearing is its final line, which A1 usually eats.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>Same memo — it reads <code>voice.partial</code> for the <code>"user"</code> speaker too.</p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">A3</span>
+        <span class="sev high">High</span>
+        <span class="f-title"><code>chat.files</code> has no writer for an agent that emits no snapshot</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">observed</span>
+        <span><code>index.js:492</code> thread load · <code>:831</code> live snapshot</span>
+      </div>
+      <p>
+        <code>files</code> is written from exactly two places: a thread's stored
+        <code>state.files</code> on load, and a live <code>STATE_SNAPSHOT</code> event. An agent that
+        writes files through tool calls but never emits a snapshot leaves <code>files</code> as
+        <code>{}</code> for the life of the app. Every surface that resolves a path through it — the
+        <code>present_file</code> card, any preview — renders its empty state, even for a file written
+        seconds earlier.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          <code>lib/persona/workspace-replay.ts</code> rebuilds the workspace by replaying the
+          transcript instead: <code>write_file</code> args carry the whole body, <code>edit_file</code>
+          carries the spans, <code>read_file</code> returns the content. The snapshot is preferred
+          where both know a file.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">A4</span>
+        <span class="sev high">High</span>
+        <span class="f-title"><code>parsePresentedFile</code> returns metadata and no content</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">observed</span>
+        <span><code>index.js:319–332</code> · <code>:817–822</code></span>
+      </div>
+      <p>
+        It returns <code>{ path, title, description }</code> and nothing else, so even with A3 fixed
+        <code>chat.presentedFile</code> cannot render a preview on its own — the bytes have to come
+        from somewhere the hook does not provide. It also requires <code>status === "success"</code>,
+        so a <code>present_file</code> result in any other envelope is treated as “no file was
+        presented”.
+      </p>
+      <p>
+        Separately, <code>presentedFile</code> is assigned as a side effect of the tool call returning,
+        so binding a sheet to it flings a preview open under the user the moment the agent finishes.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          The sheet is bound to caller-owned state instead, set by the Open button on the tool card —
+          opening a file is the user's click, not a consequence of the agent running.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">A5</span>
+        <span class="sev high">High</span>
+        <span class="f-title"><code>sendMessage</code> silently discards the message while a stream is in flight</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:615</code></span>
+      </div>
+      <p>
+        <code>if (!prompt || isStreaming) return;</code> — no error, no queue, no callback, no return
+        value. The caller cannot tell the message was dropped, and because the early return happens
+        before <code>setInput("")</code>, the text stays in the composer too: the send is invisible
+        from both sides. <code>resumeInterrupt</code> routes through the same call, so an interrupt
+        answered while a stream is still running is a silent no-op as well.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          The composer never offers Send while streaming (it offers Stop instead), and
+          <code>handleSend</code> refuses to send during a history load. The SDK's own guard is the
+          last line of defence rather than the only one.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">A6</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title"><code>isMuted</code> survives <code>start()</code></span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1708–1723</code> · <code>:1775–1780</code></span>
+      </div>
+      <p>
+        <code>start()</code> resets <code>error</code>, <code>endReason</code>,
+        <code>transcript</code>, <code>partial</code>, <code>toolCalls</code>,
+        <code>acceptedTurnSeqRef</code> and <code>state</code> — but not <code>isMuted</code>, which is
+        written only by <code>mute()</code>. <code>startCapture</code> opens a fresh
+        <code>getUserMedia</code> track whose <code>enabled</code> defaults to true, so after a muted
+        call the next call records normally while the UI — reading <code>isMuted</code> — reports the
+        microphone as off. The user's assumption is the dangerous one.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          <code>handleStartVoice</code> calls <code>voice.mute(false)</code> before
+          <code>voice.start()</code>. Safe because <code>mute()</code> only reaches for a stream if one
+          exists.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">A7</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title">Typing during a call sends to the socket and nowhere else</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1781–1784</code></span>
+      </div>
+      <p>
+        <code>sendText</code> writes <code>{ type: "voice.text" }</code> to the websocket and returns.
+        It does not clear <code>chat.input</code>, does not append anything to
+        <code>chat.messages</code>, and reports nothing about whether it sent — it silently no-ops
+        when the socket is not <code>OPEN</code>. So the typed text stays in the composer looking
+        unsent, and a call's transcript has no record of the typed turns at all.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          <code>handleSendToVoice</code> clears the input — but only in <code>listening</code>,
+          <code>thinking</code> and <code>speaking</code>. <code>connecting</code> is excluded on
+          purpose: the SDK creates the socket before it opens and only leaves that state on the
+          server's <code>voice_session_ready</code>, so clearing then would delete text that
+          <code>sendText</code> had just dropped on the floor.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">A8</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title"><code>loadThreadMessages</code> ends with an absolute <code>setMessages</code></span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">observed</span>
+        <span><code>index.js:490</code> · <code>:522–542</code></span>
+      </div>
+      <p>
+        Not a functional update, so a fetch that started before another action resolves after it and
+        replaces whatever is on screen. Two loads in flight for different threads have no ordering
+        guarantee — the stale one wins if it resolves last. The hook's own auto-load effect fires for
+        any <code>threadId</code> change with an empty list, so <em>calling
+        <code>loadThreadMessages</code> yourself</em> puts a second fetch in flight and creates exactly
+        that race.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Workaround shipped</span>
+        <p>
+          One loader, not two: <code>switchToThread</code> clears the messages and sets the id in the
+          same tick (so React batches them into one render) and lets the SDK's effect perform the
+          single fetch.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ================= PART B ================= -->
+  <section>
+    <div class="sec-head">
+      <h2>Found by reading, still live</h2>
+      <span class="sec-count">10 findings · none worked around</span>
+    </div>
+    <p class="sec-note">
+      Traced to lines but not exercised. The app does not currently reach most of these paths — which
+      is the only reason they have not already appeared as bugs.
+    </p>
+
+    <article class="finding" data-sev="critical">
+      <h3 class="f-head">
+        <span class="f-id">B1</span>
+        <span class="sev critical">Critical</span>
+        <span class="f-title"><code>reload()</code> duplicates the user's message and keeps the stale reply</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1038–1064</code> with <code>:662–663</code></span>
+      </div>
+      <p>
+        <code>reload</code> finds <code>lastUserIndex</code> and calls
+        <code>setMessages(messages.slice(0, lastUserIndex))</code>, then calls
+        <code>sendMessage(lastUserMessage.content)</code>. <code>sendMessage</code> reads the
+        <em>same</em> render's <code>messages</code> closure and builds
+        <code>nextMessages = [...messages, userMessage]</code> from the full pre-slice list, then calls
+        <code>setMessages([...nextMessages, placeholder])</code>.
+      </p>
+      <p>
+        Both are direct — not functional — updates, so the second supersedes the first. The list ends
+        up as the entire old conversation, plus a duplicate of the user's last message, plus a new
+        placeholder. The previous assistant reply is never removed, which is the one thing
+        <code>reload</code> exists to do.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Not worked around</span>
+        <p>
+          This app does not call <code>reload</code>. Fix: have <code>reload</code> pass the truncated
+          list explicitly, or build <code>nextMessages</code> from a functional update, or await a
+          state flush before calling <code>sendMessage</code>.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">B2</span>
+        <span class="sev high">High</span>
+        <span class="f-title">A <code>STATE_SNAPSHOT</code> that omits a field wipes it</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:826–832</code> · <code>:364–375</code></span>
+      </div>
+      <p>
+        <code>setFiles(normalizeWorkspaceFiles(event.snapshot.files))</code> — and
+        <code>normalizeWorkspaceFiles</code> does <code>Object.entries(raw || {})</code>, so an absent
+        <code>files</code> becomes <code>{}</code> and clears the workspace.
+        <code>setTodos(event.snapshot.todos)</code> passes the value straight through, so an absent
+        <code>todos</code> sets state to <code>undefined</code> — while the hook's declared return type
+        is <code>todos: PersonaTodo[]</code> (<code>index.d.ts:447</code>, non-optional).
+      </p>
+      <p>
+        The author knew: the debug line immediately above guards for both cases with <code>?? {}</code>
+        and <code>?.length ?? 0</code>. Only the assignments are unguarded. A consumer doing
+        <code>todos.map(...)</code> or <code>todos.length</code> throws; this app happens to survive on
+        one <code>todos?.length</code> inside <code>TodoChecklist</code>.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Suggested fix</span>
+        <p>
+          Assign only when the field is present:
+          <code>setFiles(normalizeWorkspaceFiles(event.snapshot.files ?? {}))</code> and
+          <code>setTodos(event.snapshot.todos ?? [])</code>.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">B3</span>
+        <span class="sev high">High</span>
+        <span class="f-title">Chat and voice disagree on how a tool error is spelled</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:288–296</code> vs <code>:1682–1693</code></span>
+      </div>
+      <p>
+        The chat path's <code>isErrorToolContent</code> accepts an error only when the content parses
+        as JSON with <code>status === "error"</code> — and only when the raw string starts with
+        <code>{</code>. The voice path's <code>TOOL_CALL_RESULT</code> handler reads
+        <code>parsed?.error</code>. So a tool that reports failure as <code>{"error": "…"}</code>
+        renders as a <em>successful</em> card in chat and as a failure in voice, while a plain-text
+        error is a success in both.
+      </p>
+      <p>
+        Two conventions in one package means that whichever one the agent actually emits, one of the
+        two surfaces is lying about the result.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Suggested fix</span>
+        <p>
+          One predicate shared by both paths, accepting <code>status === "error"</code> or a truthy
+          <code>error</code>, and treating non-JSON content as opaque rather than as success.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">B4</span>
+        <span class="sev high">High</span>
+        <span class="f-title">A failed history load is never retried, and <code>clear()</code> does not reset it</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:538</code> · <code>:463–521</code> · <code>:452–462</code></span>
+      </div>
+      <p>
+        <code>loadedThreadIdRef.current = threadId</code> is assigned <em>before</em> the fetch. If the
+        fetch rejects, <code>loadThreadMessages</code> sets <code>error</code> and returns
+        <code>[]</code> — but the ref still claims the thread is loaded, so the auto-load effect skips
+        it forever. The user sees “How can I help?” on a thread that does have messages, with a small
+        error line as the only clue. And <code>clear()</code> resets messages, error, interrupt, files,
+        todos and presentedFile but not this ref, so clearing and reselecting the same thread shows
+        nothing at all.
+      </p>
+      <div class="fix">
+        <span class="fix-label">Suggested fix</span>
+        <p>
+          Set the ref after a successful load (or clear it on error), and reset it in
+          <code>clear()</code>.
+        </p>
+      </div>
+    </article>
+
+    <article class="finding" data-sev="high">
+      <h3 class="f-head">
+        <span class="f-id">B5</span>
+        <span class="sev high">High</span>
+        <span class="f-title">Tool calls made during a voice call never reach the transcript</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1557–1568</code> · <code>:1676–1694</code> · <code>:544–611</code></span>
+      </div>
+      <p>
+        The voice path collects tool calls into <code>voice.toolCalls</code> through its own
+        <code>TOOL_CALL_CHUNK</code> and <code>TOOL_CALL_RESULT</code> handlers, and the hook returns
+        them — but the merge that writes voice turns into <code>chat.messages</code> handles only
+        <code>transcript</code> lines. A call where the agent writes a file or runs a command leaves no
+        trace in the conversation: the transcript after hanging up is user/assistant prose with the
+        work missing.
+      </p>
+      <p>
+        The two surfaces also name the same thing differently — <code>id</code> on
+        <code>PersonaVoiceToolCall</code>, <code>toolCallId</code> on chat tool calls — so merging them
+        is a translation rather than a concatenation.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">B6</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title">The merge's dedupe can swallow a legitimate repeat</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:579–582</code></span>
+      </div>
+      <p>
+        Before appending, the merge scans the <em>whole</em> history for any non-<code>voice-</code>
+        message with the same role and the same trimmed content, and skips the line if it finds one. It
+        exists to stop a line being merged twice — but a voice line and a typed line are different
+        events. A user who typed “yes” earlier and then says “yes” during a call loses the voice turn.
+      </p>
+      <p>
+        The hook already has an exact guard against double-merging on the line above
+        (<code>prev.some(m =&gt; m.id === voiceId)</code>). This second, broader one is the bug.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">B7</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title"><code>partial</code> is a single slot shared by both speakers</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1569–1575</code></span>
+      </div>
+      <p>
+        <code>setPartial({ id: "partial", speaker, text })</code> — one object, so a user partial and
+        an agent partial overwrite each other rather than coexisting, and the id is a constant, so
+        consumers cannot key on it. The clear is conditional too:
+        <code>setPartial(prev =&gt; prev?.speaker === speaker ? null : prev)</code> only clears when
+        the final line's speaker matches, so a stale partial can outlive the line it belonged to.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">B8</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title">History sent to the server is text-only and role-flattened</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:678–681</code></span>
+      </div>
+      <p>
+        <code>payloadMessages</code> is built as
+        <code>{ role: m.role === "assistant" ? "assistant" : "user", content: m.content }</code>.
+        Filtering reasoning out is deliberate, but every other role — <code>tool</code>,
+        <code>system</code>, anything added later — is sent to the server as a <em>user</em> turn, and
+        tool calls are dropped entirely. On a thread with an id the server presumably holds the real
+        record; on the first send of a new thread there is no id yet, so the model receives the
+        flattened, tool-less history.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">B9</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title">A changing <code>stop</code> identity hangs up the live call</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1522</code></span>
+      </div>
+      <p>
+        <code>useEffect4(() =&gt; stop, [stop])</code> uses <code>stop</code> as the effect's own
+        cleanup, so any change in its identity runs it — and <code>stop()</code> closes the websocket
+        and tears down the audio graph. <code>stop</code> depends on <code>voiceLogger</code>, which is
+        <code>logger.child("voice")</code> memoized on <code>logger</code>, and the provider's
+        <code>logger</code> is memoized on <code>getAuthToken</code> among other things.
+      </p>
+      <p>
+        So this is latent rather than certain: it needs a caller whose <code>getAuthToken</code> is not
+        referentially stable. Where that holds, every provider re-render with a new token function
+        silently drops the user's call. A cleanup guarded on an unmount ref would be immune.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="medium">
+      <h3 class="f-head">
+        <span class="f-id">B10</span>
+        <span class="sev medium">Medium</span>
+        <span class="f-title">A voice session binds whatever <code>threadId</code> existed at <code>start()</code></span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1731–1740</code></span>
+      </div>
+      <p>
+        The ticket request sends <code>...threadId ? { threadId } : {}</code>, evaluated when
+        <code>start()</code> runs. The chat side of the same hook stack explicitly supports a
+        lazily-created thread — <code>sendMessage</code>'s <code>overrideOptions.threadId</code>
+        accepts a Promise for exactly that — but there is no equivalent here. So the first voice call
+        in a brand-new conversation, made before any thread exists, opens a session with no thread
+        binding, while the chat merge writes its result into the local message list. The two halves of
+        one conversation end up in different places.
+      </p>
+    </article>
+  </section>
+
+  <!-- ================= PART C ================= -->
+  <section>
+    <div class="sec-head">
+      <h2>Smaller, and internal consistency</h2>
+      <span class="sec-count">6 findings</span>
+    </div>
+    <p class="sec-note">
+      Not defects in behaviour so much as places where the package disagrees with itself, or where an
+      API's silence costs the caller an hour.
+    </p>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C1</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">Mutations have no error state</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1245–1296</code></span>
+      </div>
+      <p>
+        <code>deleteThread</code>, <code>updateThread</code>, <code>resetThread</code> and
+        <code>bulkDeleteThreads</code> all reject on failure, but the hook's <code>error</code>
+        reflects only <code>fetchThreads</code>. A caller writing the natural
+        <code>void deleteThread(id)</code> gets an unhandled rejection and a sidebar that silently did
+        not change. <code>useFiles</code>' <code>deleteFile</code> and
+        <code>bulkDeleteFiles</code> have the same shape.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C2</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">The XHR fallback has no timeout</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:133–236</code></span>
+      </div>
+      <p>
+        <code>xhrStream</code> never assigns <code>xhr.timeout</code>, so the
+        <code>ontimeout</code> handler at <code>:219</code> is unreachable and the error it constructs
+        can never be raised. On the fallback path (React Native, or any environment without
+        <code>ReadableStream</code>) a stalled response hangs indefinitely instead of failing.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C3</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">Every callback in <code>useChat</code> is rebuilt on every render</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:1011–1021</code></span>
+      </div>
+      <p>
+        <code>sendMessage</code>'s dependency array includes <code>options</code> — the caller's object
+        literal, which is fresh every render (<code>useChat({ agentId, threadId, voice })</code>). So
+        <code>sendMessage</code>, <code>handleSubmit</code> and <code>reload</code> all change identity
+        on every render, and nothing downstream can memoize on them.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C4</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">Two disjoint <code>stop()</code>s, and no way to stop everything</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:438–451</code> · <code>:1512–1521</code></span>
+      </div>
+      <p>
+        <code>useChat</code>'s <code>stop</code> aborts the SSE stream; <code>useVoice</code>'s
+        <code>stop</code> closes the call. Neither touches the other. A UI that offers both a Stop and
+        an End call has to know which one it is calling, and there is no single “stop whatever is
+        happening” — the same name on two hooks with different scopes is a trap on first read.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C5</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">An empty result reads as “still running”</span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:360</code></span>
+      </div>
+      <p>
+        <code>parseSandboxCommand</code> derives status by truthiness:
+        <code>tc.isError ? "error" : tc.result ? "done" : "running"</code>. A tool that legitimately
+        returns an empty string is reported as still running, so the card never settles.
+      </p>
+    </article>
+
+    <article class="finding" data-sev="note">
+      <h3 class="f-head">
+        <span class="f-id">C6</span>
+        <span class="sev note">Note</span>
+        <span class="f-title">Provider context identity is tied to <code>getAuthToken</code></span>
+      </h3>
+      <div class="f-meta">
+        <span class="ev">read</span>
+        <span><code>index.js:34–94</code> · <code>:1325–1329</code></span>
+      </div>
+      <p>
+        The provider's context <code>value</code> is memoized on <code>getAuthToken</code>, and every
+        hook's auto-fetch effect depends on the <code>fetchWithAuth</code> that value provides. So a
+        <code>getAuthToken</code> whose identity changes re-runs the
+        <code>useThreads</code> / <code>useFiles</code> / <code>useAgents</code> fetch effects — in the
+        worst case a fetch loop. Reading the token function through a ref would decouple them.
+      </p>
+    </article>
+  </section>
+
+  <!-- ================= SHORTLIST ================= -->
+  <section>
+    <div class="sec-head">
+      <h2>Where I would start</h2>
+      <span class="sec-count">4 changes</span>
+    </div>
+
+    <div class="shortlist">
+      <div class="sl-item">
+        <span class="sl-n">1</span>
+        <div class="sl-body">
+          <b>B1 — <code>reload()</code></b>
+          <span>
+            Leaves the wrong conversation on screen: a duplicate user turn and the assistant reply that
+            was meant to be discarded. Smallest fix here, largest wrongness.
+          </span>
+        </div>
+      </div>
+      <div class="sl-item">
+        <span class="sl-n">2</span>
+        <div class="sl-body">
+          <b>A1 + A2 — the voice merge pointer</b>
+          <span>
+            Silent, permanent data loss on the most human path in the product. Merge the unseen lines
+            before advancing the pointer, and flush on <code>stop()</code>.
+          </span>
+        </div>
+      </div>
+      <div class="sl-item">
+        <span class="sl-n">3</span>
+        <div class="sl-body">
+          <b>B2 — snapshot field guarding</b>
+          <span>
+            <code>undefined</code> assigned into a state declared non-optional. It is a two-token fix
+            and it removes a class of consumer crash.
+          </span>
+        </div>
+      </div>
+      <div class="sl-item">
+        <span class="sl-n">4</span>
+        <div class="sl-body">
+          <b>A5 + B4 — the silent no-ops</b>
+          <span>
+            Dropped sends and never-retried loads are the failures that cost the most debugging time,
+            because nothing anywhere reports them. A callback or a return value is enough.
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Traced against @personaai/react 0.7.10 · dist/index.js, 2101 lines · index.d.ts, 684 lines<br>
+    Findings marked <em>observed</em> produced a failure in this app; <em>read</em> findings are
+    source-traced mechanisms that were not exercised at runtime.
+  </footer>
+
+</div>
