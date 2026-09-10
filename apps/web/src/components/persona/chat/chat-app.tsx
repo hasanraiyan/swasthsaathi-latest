@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useChat, useVoice, useThreads } from "@personaai/react";
-import type { PersonaSubagentActivityEntry } from "@personaai/react";
+import type { PersonaThread, PersonaSubagentActivityEntry } from "@personaai/react";
 import {
   ChatScroller,
   ChatScrollerItem,
@@ -42,6 +42,12 @@ function ChatApp() {
     refetch: refetchThreads,
   } = useThreads(true);
   const [threadId, setThreadId] = React.useState<string | undefined>(undefined);
+  // Optimistic local cache — so title/new-thread appear instantly without
+  // waiting for the refetch that follows. Refetch still runs in background
+  // to reconcile, but the list never hides (ThreadSidebar now shows
+  // Syncing… subtle, not Loading…).
+  const [optimisticTitles, setOptimisticTitles] = React.useState<Record<string, string>>({});
+  const [optimisticThreads, setOptimisticThreads] = React.useState<PersonaThread[]>([]);
 
   // Ephemeral new chat (0.8.0): threadId === undefined means no real thread
   // yet — no POST /threads, no history fetch, instant empty UI. First
@@ -63,13 +69,31 @@ function ChatApp() {
     onThreadCreated: React.useCallback(
       (newId: string) => {
         setThreadId(newId);
+        const now = new Date().toISOString();
+        setOptimisticThreads((prev) => {
+          if (prev.some((t) => t._id === newId) || threads.some((t) => t._id === newId)) return prev;
+          return [
+            { _id: newId, agentId: AGENT_ID ?? "", title: "New chat", createdAt: now, updatedAt: now } as PersonaThread,
+            ...prev,
+          ];
+        });
         void refetchThreads();
       },
-      [refetchThreads],
+      [refetchThreads, threads],
     ),
-    onTitle: React.useCallback(() => {
-      void refetchThreads();
-    }, [refetchThreads]),
+    onTitle: React.useCallback(
+      (title: string) => {
+        const trimmed = title.trim();
+        if (!threadId || !trimmed) {
+          void refetchThreads();
+          return;
+        }
+        const id = threadId;
+        setOptimisticTitles((prev) => ({ ...prev, [id]: trimmed }));
+        void refetchThreads();
+      },
+      [refetchThreads, threadId],
+    ),
     onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string; title?: string }) => {
       if (event.type === "RUN_ERROR") {
         setRunError({
@@ -79,10 +103,15 @@ function ChatApp() {
           providerName: event.providerName,
         });
       }
-      if (event.type === "title" && typeof event.title === "string" && event.title.trim()) {
+      if (event.type === "title" && threadId) {
+        const t = event.title;
+        if (typeof t === "string" && t.trim()) {
+          const id = threadId;
+          setOptimisticTitles((prev) => ({ ...prev, [id]: t.trim() }));
+        }
         void refetchThreads();
       }
-    }, [refetchThreads]),
+    }, [refetchThreads, threadId]),
     onError: React.useCallback((err: Error) => {
       // Fallback for non-stream errors that surface via useChat.error — RUN_ERROR is handled via onEvent above.
       // We still surface it here so the alert shows even if event is missed.
@@ -136,10 +165,45 @@ function ChatApp() {
     [chat.messages, chat.files]
   );
 
+  const displayThreads = React.useMemo(() => {
+    const byId = new Map<string, PersonaThread>();
+    for (const t of optimisticThreads) byId.set(t._id, t);
+    for (const t of threads) {
+      const patched = optimisticTitles[t._id] ? { ...t, title: optimisticTitles[t._id] } : t;
+      const existing = byId.get(t._id);
+      if (existing) {
+        byId.set(t._id, { ...existing, ...patched, title: patched.title ?? existing.title });
+      } else {
+        byId.set(t._id, patched);
+      }
+    }
+    return Array.from(byId.values()).sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+  }, [threads, optimisticThreads, optimisticTitles]);
+
+  React.useEffect(() => {
+    if (optimisticThreads.length === 0) return;
+    const serverIds = new Set(threads.map((t) => t._id));
+    setOptimisticThreads((prev) => prev.filter((t) => !serverIds.has(t._id)));
+  }, [threads]);
+
+  React.useEffect(() => {
+    if (Object.keys(optimisticTitles).length === 0) return;
+    const serverById = new Map(threads.map((t) => [t._id, t.title]));
+    setOptimisticTitles((prev) => {
+      const next: Record<string, string> = {};
+      for (const [id, title] of Object.entries(prev)) {
+        if (serverById.get(id) !== title) next[id] = title;
+      }
+      return next;
+    });
+  }, [threads]);
+
   const effectiveThreadId = chat.currentThreadId ?? threadId;
   const activeThreadTitle = React.useMemo(
-    () => threads.find((t) => t._id === effectiveThreadId)?.title,
-    [threads, effectiveThreadId]
+    () => displayThreads.find((t) => t._id === effectiveThreadId)?.title,
+    [displayThreads, effectiveThreadId]
   );
 
   // Is a thread's history still on its way? The pane has to know, because
@@ -230,6 +294,11 @@ function ChatApp() {
   const handleDeleteThread = React.useCallback(
     (id: string) => {
       void deleteThread(id);
+      setOptimisticTitles((prev) => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+      setOptimisticThreads((prev) => prev.filter((t) => t._id !== id));
       if (id !== threadId) return;
       chat.startNewChat();
       setRunError(null);
@@ -240,6 +309,17 @@ function ChatApp() {
       setHistoryPending(false);
     },
     [deleteThread, threadId, chat]
+  );
+
+  const handleRenameThread = React.useCallback(
+    (id: string, title: string) => {
+      setOptimisticTitles((prev) => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+      void renameThread(id, title);
+    },
+    [renameThread],
   );
   const handleSend = React.useCallback(
     (text?: string) => {
@@ -332,13 +412,13 @@ function ChatApp() {
     // bounded by the body's h-dvh instead of a second, taller viewport unit.
     <SidebarProvider className="flex min-h-0 flex-1">
       <ThreadSidebar
-        threads={threads}
+        threads={displayThreads}
         activeThreadId={effectiveThreadId ?? null}
         isLoading={threadsLoading}
         error={threadsError}
         onSelectThread={switchToThread}
         onCreateThread={handleNewChat}
-        onRenameThread={renameThread}
+        onRenameThread={handleRenameThread}
         onDeleteThread={handleDeleteThread}
       />
 

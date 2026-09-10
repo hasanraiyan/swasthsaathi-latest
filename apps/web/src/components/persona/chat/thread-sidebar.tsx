@@ -279,25 +279,32 @@ function ThreadSidebar({
       <SidebarSeparator />
 
       <SidebarContent className="gap-0.5 p-1.5">
-        {isLoading ? (
+        {isLoading && threads.length === 0 ? (
           <div className="p-2 text-xs text-muted-foreground">Loading…</div>
-        ) : error ? (
+        ) : error && threads.length === 0 ? (
           <div className="p-2 text-xs text-destructive">
             Couldn&apos;t load chats: {error.message}
           </div>
         ) : threads.length === 0 ? (
           <div className="p-2 text-xs text-muted-foreground">No chats yet.</div>
         ) : (
-          threads.map((thread) => (
-            <ThreadRow
-              key={thread._id}
-              thread={thread}
-              active={thread._id === activeThreadId}
-              onSelect={() => handleSelect(thread._id)}
-              onRename={(title) => onRenameThread(thread._id, title)}
-              onDelete={() => onDeleteThread(thread._id)}
-            />
-          ))
+          <>
+            {threads.map((thread) => (
+              <ThreadRow
+                key={thread._id}
+                thread={thread}
+                active={thread._id === activeThreadId}
+                onSelect={() => handleSelect(thread._id)}
+                onRename={(title) => onRenameThread(thread._id, title)}
+                onDelete={() => onDeleteThread(thread._id)}
+              />
+            ))}
+            {isLoading && (
+              <div className="p-2 text-[10px] tracking-wide text-muted-foreground opacity-60">
+                Syncing…
+              </div>
+            )}
+          </>
         )}
       </SidebarContent>
 
