@@ -2,9 +2,28 @@
 
 import * as React from "react";
 import type { PersonaThread } from "@personaai/react";
+import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Item, ItemContent, ItemTitle, ItemActions } from "@/components/ui/item";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  PlusIcon,
+  TrashIcon,
+  PencilSimpleIcon,
+  GearIcon,
+} from "@phosphor-icons/react";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -16,7 +35,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { PlusIcon, TrashIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 function ThreadRow({
@@ -45,10 +63,10 @@ function ThreadRow({
     <Item
       variant={active ? "muted" : "default"}
       size="sm"
-      className={cn("cursor-pointer", !editing && "group/thread")}
+      className={cn("w-full min-w-0 cursor-pointer", !editing && "group/thread")}
       onClick={editing ? undefined : onSelect}
     >
-      <ItemContent>
+      <ItemContent className="min-w-0">
         {editing ? (
           <Input
             autoFocus
@@ -63,12 +81,20 @@ function ThreadRow({
             className="h-6 px-1.5 text-xs"
           />
         ) : (
-          <ItemTitle>{thread.title || "New chat"}</ItemTitle>
+          <ItemTitle className="truncate">{thread.title || "New chat"}</ItemTitle>
         )}
       </ItemContent>
 
       {!editing && (
-        <ItemActions className="opacity-0 group-hover/thread:opacity-100">
+        // Touch devices have no hover, so the row actions can't be
+        // hover-revealed alone — they're always present once the row is
+        // active, and hover-revealed otherwise.
+        <ItemActions
+          className={cn(
+            "shrink-0 transition-opacity",
+            active ? "opacity-100" : "opacity-0 group-hover/thread:opacity-100"
+          )}
+        >
           <Button
             type="button"
             variant="ghost"
@@ -116,6 +142,21 @@ function ThreadRow({
   );
 }
 
+/**
+ * The thread list, as a real off-canvas sidebar.
+ *
+ * It used to be a bare `<div className="w-64 shrink-0">`, which meant it sat
+ * permanently in the layout at every width — on a phone that spent 256 of
+ * ~390 usable pixels on a list nobody could dismiss, leaving the conversation
+ * in a sliver. The `Sidebar` primitive (shadcn) already owns the whole
+ * problem: it renders a fixed panel with a gap on desktop and a dismissible
+ * Sheet on mobile, and persists the collapsed state in a cookie.
+ *
+ * The footer is the other half of that primitive being unused — the app had
+ * no visible account affordance at all. Clerk's own UserButton covers it
+ * (avatar, name, and the sign-out/manage-account menu it already ships), with
+ * a settings button beside it that is inert for now.
+ */
 function ThreadSidebar({
   threads,
   activeThreadId,
@@ -135,14 +176,40 @@ function ThreadSidebar({
   onRenameThread: (id: string, title: string) => void;
   onDeleteThread: (id: string) => void;
 }) {
+  // On mobile the sidebar is a Sheet. Choosing a thread (or starting one)
+  // resolves the user's intent, so it has to close — otherwise the sheet stays
+  // over the conversation the user just asked for, and there is no visible
+  // close button to get out of it (the Sheet's own is suppressed by the
+  // Sidebar primitive's mobile styling).
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeIfMobile = React.useCallback(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
+
+  const handleSelect = (id: string) => {
+    onSelectThread(id);
+    closeIfMobile();
+  };
+
+  const handleCreate = () => {
+    onCreateThread();
+    closeIfMobile();
+  };
+
   return (
-    <div className="flex w-64 shrink-0 flex-col border-r border-border">
-      <div className="p-2">
-        <Button type="button" variant="outline" className="w-full justify-start gap-2" onClick={onCreateThread}>
+    <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={handleCreate}
+        >
           <PlusIcon /> New chat
         </Button>
-      </div>
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2 pt-0">
+      </SidebarHeader>
+
+      <SidebarContent className="gap-1 p-2">
         {isLoading ? (
           <div className="p-2 text-xs text-muted-foreground">Loading…</div>
         ) : error ? (
@@ -157,14 +224,56 @@ function ThreadSidebar({
               key={thread._id}
               thread={thread}
               active={thread._id === activeThreadId}
-              onSelect={() => onSelectThread(thread._id)}
+              onSelect={() => handleSelect(thread._id)}
               onRename={(title) => onRenameThread(thread._id, title)}
               onDelete={() => onDeleteThread(thread._id)}
             />
           ))
         )}
-      </div>
-    </div>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <div className="flex min-w-0 items-center gap-1">
+          {/* showName so the account is identifiable at a glance rather than
+              being just an unlabelled avatar; truncation is handled below
+              because a long email will otherwise push the settings button off
+              the panel. */}
+          <div className="min-w-0 flex-1">
+            <UserButton
+              showName
+              appearance={{
+                elements: {
+                  rootBox: "min-w-0 w-full",
+                  userButtonBox: "min-w-0 w-full",
+                  userButtonOuterIdentifier:
+                    "min-w-0 truncate text-xs text-sidebar-foreground",
+                },
+              }}
+            />
+          </div>
+
+          {/* Inert by design — the settings surface doesn't exist yet. The
+              tooltip is what keeps that honest: an enabled-looking button that
+              silently swallowed clicks would read as broken rather than
+              unbuilt. The span is the trigger because a disabled button emits
+              no pointer events for the tooltip to hook. */}
+          <Tooltip>
+            <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled
+                aria-label="Settings"
+              >
+                <GearIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Settings — coming soon</TooltipContent>
+          </Tooltip>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
 

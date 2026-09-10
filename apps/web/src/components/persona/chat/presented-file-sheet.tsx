@@ -23,46 +23,77 @@ function isCodeFile(path: string): boolean {
   return CODE_EXTENSIONS.includes(ext);
 }
 
-/** Compare two workspace paths ignoring the prefix an agent may or may not
- * include: `/workspace/outputs/a.py`, `workspace/outputs/a.py`, `./outputs/a.py`
- * and `outputs/a.py` are all the same file. */
-function normalizePath(p: string): string {
-  return p
-    .replace(/^\.?\//, "")
-    .replace(/^workspace\//, "")
-    .replace(/^\.\//, "");
+/** Split a workspace path into its meaningful segments, dropping the leading
+ * `./`, `/`, and `workspace/` that an agent may or may not include:
+ * `/workspace/outputs/a.py`, `workspace/outputs/a.py`, `./outputs/a.py` and
+ * `outputs/a.py` all reduce to `["outputs", "a.py"]`. */
+function segments(p: string): string[] {
+  let out = p.trim().replace(/\\/g, "/");
+  // Any run of dots/slashes at the front is relative-path noise.
+  out = out.replace(/^(?:\.{1,2}\/|\/)+/, "");
+  // Drop a leading `workspace/` container, the virtual root deepagents files
+  // live under — the snapshot keys it inconsistently, sometimes with it and
+  // sometimes without.
+  out = out.replace(/^workspace\//, "");
+  return out.split("/").filter(Boolean);
 }
 
 /**
  * Resolve a presented path against the workspace snapshot.
  *
- * The snapshot is keyed by whatever the agent's own state used, while a
- * `present_file` call (and the Open button on its card) carries the path the
- * tool was given — the two routinely disagree by a `/workspace` prefix, which
- * is why clicking Open used to land on "Not in the workspace snapshot" for a
- * file that was plainly there. Try the exact key, then a prefix-insensitive
- * match, then a basename match (only when unambiguous — two `index.ts` files
- * in different folders must not silently resolve to the wrong one).
+ * Two independent sources have to be reconciled here, which is the whole bug:
+ * `chat.files` is keyed by the paths in the agent's `STATE_SNAPSHOT`
+ * (`normalizeWorkspaceFiles`), while the path we're handed comes from the
+ * `present_file` tool call itself — its `filePath` arg, or the `filePath` in
+ * its result envelope (`parsePresentedFile`). Those routinely disagree by a
+ * `/workspace` prefix, so a plain `files[path]` lookup missed and Open landed
+ * on "Not in the workspace snapshot" for a file that was plainly sitting in
+ * the snapshot under a slightly different spelling.
+ *
+ * Tiered, most-specific first:
+ *   1. exact key — the common case, costs nothing
+ *   2. equal segment lists — absorbs `./`, `/`, and `workspace/` differences
+ *   3. longest shared segment suffix — absorbs a differing leading directory
+ *      (e.g. `/workspace/out/a.py` vs `sandbox/out/a.py`). Ties are refused
+ *      rather than guessed: two different `out/a.py` files must not silently
+ *      resolve to the wrong one.
  */
 function resolveContent(
   files: Record<string, PersonaWorkspaceFile>,
   path: string
 ): string | undefined {
   if (!path) return undefined;
+
   const exact = files[path];
   if (exact?.content != null) return exact.content;
 
-  const target = normalizePath(path);
+  const target = segments(path);
+  if (target.length === 0) return undefined;
+
+  let best: { depth: number; content: string; ties: number } | null = null;
+
   for (const [key, file] of Object.entries(files)) {
-    if (normalizePath(key) === target) return file.content;
+    if (file.content == null) continue;
+    const keySegs = segments(key);
+
+    if (keySegs.length === target.length && keySegs.join("/") === target.join("/")) {
+      return file.content;
+    }
+
+    const depth = Math.min(keySegs.length, target.length);
+    if (depth === 0) continue;
+    // Compare only the trailing `depth` segments.
+    const shared = keySegs.slice(-depth).join("/") === target.slice(-depth).join("/");
+    if (!shared) continue;
+
+    if (!best || depth > best.depth) {
+      best = { depth, content: file.content, ties: 0 };
+    } else if (depth === best.depth) {
+      best.ties += 1;
+    }
   }
 
-  const base = target.split("/").pop();
-  if (!base) return undefined;
-  const byBase = Object.entries(files).filter(
-    ([key]) => key.split("/").pop() === base
-  );
-  return byBase.length === 1 ? byBase[0][1].content : undefined;
+  return best && best.ties === 0 ? best.content : undefined;
 }
 
 /**

@@ -1,4 +1,5 @@
 export { ChatScroller, ChatScrollerItem } from "./chat-scroller";
+export { ChatHeader } from "./chat-header";
 export { ChatMessage } from "./chat-message";
 export { MessageMarkdown } from "./message-markdown";
 export { ReasoningBlock } from "./reasoning-block";

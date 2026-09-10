@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { MessageMarkdown } from "./message-markdown";
@@ -8,6 +7,7 @@ import { ToolCallTrace } from "./tool-call-trace";
 import { ReasoningBlock } from "./reasoning-block";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { CopyButton } from "./copy-button";
+import type { MessageBlock } from "@/lib/persona/group-messages";
 import type { PersonaMessage, PersonaTodo } from "@personaai/react";
 
 /**
@@ -16,13 +16,15 @@ import type { PersonaMessage, PersonaTodo } from "@personaai/react";
  * chrome; the assistant's turn renders as plain content plus its tool-call
  * trace, no bubble — same split NotebookChat.js's ChatMessage uses.
  *
- * `useChat()` streams reasoning as its own `role: "reasoning"` messages
- * rather than embedding them on the assistant message, so the caller passes
- * the reasoning messages that precede this one (matched by `seq`) separately.
+ * An assistant turn renders its `blocks` in order rather than a fixed
+ * reasoning-then-tools-then-answer stack, so a second reasoning phase that
+ * follows a tool call appears *after* that call instead of being merged into
+ * the same thought block as the first. See group-messages.ts for how the
+ * ordering is derived.
  */
 function ChatMessage({
   message,
-  reasoning,
+  blocks,
   todos,
   projectId,
   onOpenSubagent,
@@ -30,7 +32,8 @@ function ChatMessage({
   onSendMessage,
 }: {
   message: PersonaMessage;
-  reasoning?: PersonaMessage[];
+  /** The turn's reasoning phases and tool calls, interleaved by stream order. */
+  blocks?: MessageBlock[];
   todos?: PersonaTodo[];
   projectId?: string;
   onOpenSubagent?: (toolCallId: string) => void;
@@ -50,47 +53,55 @@ function ChatMessage({
   }
 
   const hasToolCalls = (message.toolCalls?.length ?? 0) > 0;
-  const reasoningMessages = reasoning ?? [];
+  const allBlocks = blocks ?? [];
+  // The answer text is always the turn's last block (see buildBlocks), so it's
+  // rendered in place at the end rather than inside the map below.
+  const leadBlocks = allBlocks.filter((b) => b.kind !== "content");
   // A live reasoning block auto-opens with its own animated header, so the
   // standalone "Thinking" gap indicator below would read as a duplicate —
   // show it only when nothing reasoning-related is already indicating.
-  const hasLiveReasoning = reasoningMessages.some((r) => r.isStreaming);
+  const hasLiveReasoning = allBlocks.some(
+    (b) => b.kind === "reasoning" && b.reasoning?.isStreaming
+  );
   const isEmptyStreaming =
     !!message.isStreaming && !message.content?.trim() && !hasToolCalls;
 
   return (
     <Message align="start" className="group/chat-message">
       <MessageContent>
-        {reasoningMessages.length > 0 && (
-          <div className="mb-1 flex flex-col gap-2">
-            {reasoningMessages.map((r) => (
-              <ReasoningBlock key={r.id} reasoning={r} />
-            ))}
-          </div>
-        )}
+        {/* One column owns the spacing between a turn's blocks — reasoning,
+            tool runs, and the answer all sit on the same rhythm, and a
+            tool run that lands between two reasoning phases reads as a
+            divider between them rather than a header above both. */}
+        <div className="flex flex-col gap-2">
+          {leadBlocks.map((block) =>
+            block.kind === "reasoning" ? (
+              <ReasoningBlock key={block.key} reasoning={block.reasoning!} />
+            ) : (
+              <ToolCallTrace
+                key={block.key}
+                toolCalls={block.toolCalls!}
+                todos={todos}
+                projectId={projectId}
+                onOpenSubagent={onOpenSubagent}
+                onOpenWorkspaceFile={onOpenWorkspaceFile}
+                onSendMessage={onSendMessage}
+              />
+            )
+          )}
 
-        {hasToolCalls && (
-          <ToolCallTrace
-            toolCalls={message.toolCalls!}
-            todos={todos}
-            projectId={projectId}
-            onOpenSubagent={onOpenSubagent}
-            onOpenWorkspaceFile={onOpenWorkspaceFile}
-            onSendMessage={onSendMessage}
-          />
-        )}
+          {isEmptyStreaming && !hasLiveReasoning ? (
+            <ThinkingIndicator />
+          ) : message.content?.trim() ? (
+            <MessageMarkdown content={message.content || ""} />
+          ) : null}
 
-        {isEmptyStreaming && !hasLiveReasoning ? (
-          <ThinkingIndicator />
-        ) : message.content?.trim() ? (
-          <MessageMarkdown content={message.content || ""} />
-        ) : null}
-
-        {!message.isStreaming && message.content && (
-          <div className="opacity-0 transition-opacity group-hover/chat-message:opacity-100">
-            <CopyButton text={message.content} label="Copy message" />
-          </div>
-        )}
+          {!message.isStreaming && message.content && (
+            <div className="opacity-0 transition-opacity group-hover/chat-message:opacity-100">
+              <CopyButton text={message.content} label="Copy message" />
+            </div>
+          )}
+        </div>
       </MessageContent>
     </Message>
   );

@@ -71,7 +71,10 @@ function ToolCallTrace({
   }
   flushGroup();
 
-  return <div className="flex flex-col gap-1.5 mb-2">{elements}</div>;
+  // No bottom margin of its own: the parent (ChatMessage) owns the vertical
+  // rhythm between a turn's blocks, so that a tool run sitting between two
+  // reasoning phases is spaced the same as everything else around it.
+  return <div className="flex flex-col gap-1.5">{elements}</div>;
 }
 
 export { ToolCallTrace };

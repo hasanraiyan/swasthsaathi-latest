@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import { useChat, useVoice, useThreads } from "@personaai/react";
-import type { PersonaSubagentActivityEntry } from "@personaai/react";
+import type {
+  PersonaSubagentActivityEntry,
+  PersonaWorkspaceFile,
+} from "@personaai/react";
 import {
   ChatScroller,
   ChatScrollerItem,
@@ -14,7 +17,9 @@ import {
   PresentedFileSheet,
   VoiceIndicator,
 } from "@/components/persona/chat";
+import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_PERSONA_AGENT_ID;
@@ -52,6 +57,15 @@ function ChatApp() {
 
   const [openSubagentToolCallId, setOpenSubagentToolCallId] = React.useState<string | null>(null);
 
+  // Which workspace file the preview sheet is showing, or null when closed.
+  //
+  // Caller-owned on purpose — NOT `chat.presentedFile`. The SDK sets that
+  // itself the moment a `present_file` call returns (dist/index.js:822), so
+  // binding the sheet to it flung the preview open under the user as a side
+  // effect of the agent finishing a tool call. Opening a file is the user's
+  // choice, made by clicking Open on the tool card; this state is that click.
+  const [openFilePath, setOpenFilePath] = React.useState<string | null>(null);
+
   // Reset accumulated per-action decisions whenever a new interrupt arrives —
   // adjusted during render (React's sanctioned pattern for this) rather than
   // via a useEffect, so there's no extra post-mount render.
@@ -69,6 +83,49 @@ function ChatApp() {
   const grouped = React.useMemo(
     () => groupMessagesWithReasoning(chat.messages),
     [chat.messages]
+  );
+
+  // What the preview sheet resolves against. `chat.files` (the STATE_SNAPSHOT)
+  // is the primary source; on top of it we fold in any content a `present_file`
+  // call returned, because that envelope carries the file the agent actually
+  // meant and is the one path the snapshot is most likely to key differently.
+  // Guarded on both fields being strings, so an envelope that carries no
+  // content (or no JSON at all) simply contributes nothing.
+  const previewFiles = React.useMemo(() => {
+    const files: Record<string, PersonaWorkspaceFile> = { ...chat.files };
+    for (const message of chat.messages) {
+      for (const toolCall of message.toolCalls ?? []) {
+        if (toolCall.toolName !== "present_file" || toolCall.isError) continue;
+        if (!toolCall.result) continue;
+        try {
+          const parsed = JSON.parse(toolCall.result) as {
+            filePath?: unknown;
+            content?: unknown;
+          };
+          if (
+            typeof parsed.filePath !== "string" ||
+            typeof parsed.content !== "string" ||
+            files[parsed.filePath]?.content != null
+          ) {
+            continue;
+          }
+          files[parsed.filePath] = {
+            content: parsed.content,
+            size: parsed.content.length,
+            createdAt: null,
+            modifiedAt: null,
+          };
+        } catch {
+          // Not a JSON envelope — nothing to harvest from it.
+        }
+      }
+    }
+    return files;
+  }, [chat.files, chat.messages]);
+
+  const activeThreadTitle = React.useMemo(
+    () => threads.find((t) => t._id === threadId)?.title,
+    [threads, threadId]
   );
 
   // One loader, not two. useChat already auto-loads a thread's history whenever
@@ -168,7 +225,12 @@ function ChatApp() {
   };
 
   return (
-    <div className="flex flex-1 min-h-0">
+    // SidebarProvider is what makes the thread list mobile-capable: it renders
+    // a fixed panel with a gap on desktop and a dismissible Sheet on mobile,
+    // and hands both the trigger in the header and the sidebar itself the same
+    // context. `min-h-0` overrides its own `min-h-svh` default so the app is
+    // bounded by the body's h-dvh instead of a second, taller viewport unit.
+    <SidebarProvider className="flex min-h-0 flex-1">
       <ThreadSidebar
         threads={threads}
         activeThreadId={threadId}
@@ -180,7 +242,9 @@ function ChatApp() {
         onDeleteThread={handleDeleteThread}
       />
 
-      <div className="flex flex-1 flex-col min-h-0">
+      <SidebarInset className="flex min-h-0 flex-col">
+        <ChatHeader threadTitle={activeThreadTitle} onNewChat={handleNewChat} />
+
         {/* `&& grouped.length === 0`, not a bare isLoadingHistory: a history
             fetch used to blank the conversation while it was in flight, so a
             message sent during one vanished from the screen until the fetch
@@ -195,7 +259,7 @@ function ChatApp() {
           <ChatEmptyState title="How can I help?" />
         ) : (
           <ChatScroller>
-            {grouped.map(({ message, reasoning }) => (
+            {grouped.map(({ message, blocks }) => (
               // messageId registers the element with the scroller so it can
               // track what's visible, hold a scroll anchor across prepends,
               // and resolve scrollToMessage. The primitive skips any item
@@ -203,10 +267,12 @@ function ChatApp() {
               <ChatScrollerItem key={message.id} messageId={message.id}>
                 <ChatMessage
                   message={message}
-                  reasoning={reasoning}
+                  blocks={blocks}
                   todos={chat.todos}
                   onOpenSubagent={setOpenSubagentToolCallId}
-                  onOpenWorkspaceFile={chat.openWorkspaceFile}
+                  // The Open button on a present_file card. Hands the path to
+                  // the sheet; nothing opens on its own.
+                  onOpenWorkspaceFile={setOpenFilePath}
                   onSendMessage={(text) => handleSend(text)}
                 />
               </ChatScrollerItem>
@@ -235,7 +301,10 @@ function ChatApp() {
         ) : null}
 
         {isVoiceActive && (
-          <div className="flex justify-center py-2">
+          // Voice mode's whole surface is the orb — a live call has no
+          // transcript panel here, so it renders at its own size rather than
+          // as a badge beside the composer.
+          <div className="flex justify-center py-4">
             <VoiceIndicator state={voice.state} />
           </div>
         )}
@@ -255,7 +324,7 @@ function ChatApp() {
             />
           </div>
         </div>
-      </div>
+      </SidebarInset>
 
       <SubagentSheet
         open={openSubagentToolCallId !== null}
@@ -264,15 +333,11 @@ function ChatApp() {
       />
 
       <PresentedFileSheet
-        presentedFile={chat.presentedFile}
-        content={
-          chat.presentedFile
-            ? chat.files[chat.presentedFile.path]?.content
-            : undefined
-        }
-        onOpenChange={(open) => !open && chat.dismissPresentedFile()}
+        path={openFilePath}
+        files={previewFiles}
+        onOpenChange={(open) => !open && setOpenFilePath(null)}
       />
-    </div>
+    </SidebarProvider>
   );
 }
 
