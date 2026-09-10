@@ -17,6 +17,7 @@ import {
 } from "@/components/persona/chat";
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
+import { HealthSummaryCard } from "@/components/health/health-summary-card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -421,7 +422,9 @@ function ChatApp() {
         {historyPending && grouped.length === 0 && voiceUserEcho.length === 0 ? (
           <ChatHistorySkeleton />
         ) : grouped.length === 0 && voiceUserEcho.length === 0 ? (
-          <ChatEmptyState title="How can I help?" />
+          <ChatEmptyState title="How can I help?">
+            <HealthSummaryCard />
+          </ChatEmptyState>
         ) : (
           <ChatScroller>
             {grouped.map(({ message, blocks }) => (

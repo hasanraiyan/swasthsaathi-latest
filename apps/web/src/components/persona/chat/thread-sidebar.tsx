@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { PersonaThread } from "@personaai/react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,14 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -24,6 +33,7 @@ import {
   PencilSimpleIcon,
   GearIcon,
 } from "@phosphor-icons/react";
+import { HEALTH_NAV_ITEMS } from "@/lib/health-nav";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -220,6 +230,7 @@ function ThreadSidebar({
   // Sidebar primitive's mobile styling).
   const { isMobile, setOpenMobile } = useSidebar();
   const { user } = useUser();
+  const pathname = usePathname();
   const displayName =
     user?.fullName || user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress || "Account";
   const closeIfMobile = React.useCallback(() => {
@@ -248,6 +259,24 @@ function ThreadSidebar({
           <PlusIcon /> New chat
         </Button>
       </SidebarHeader>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Health</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {HEALTH_NAV_ITEMS.map(({ href, label, icon: NavIcon }) => (
+              <SidebarMenuItem key={href}>
+                <SidebarMenuButton render={<Link href={href} />} isActive={pathname === href}>
+                  <NavIcon />
+                  <span>{label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator />
 
       <SidebarContent className="gap-0.5 p-1.5">
         {isLoading ? (

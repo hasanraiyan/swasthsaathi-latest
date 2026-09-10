@@ -22,11 +22,16 @@ function ChatEmptyState({
   description,
   starterPrompts,
   onSelectPrompt,
+  children,
 }: {
   title: string;
   description?: string;
   starterPrompts?: ChatStarterPrompt[];
   onSelectPrompt?: (template: string) => void;
+  // Caller-supplied content between the title and the starter prompts —
+  // e.g. a dashboard card. Kept generic here on purpose; this component
+  // doesn't know what a "Health Profile" is.
+  children?: React.ReactNode;
 }) {
   return (
     <Empty className="flex-1 border-none">
@@ -34,6 +39,7 @@ function ChatEmptyState({
         <EmptyTitle>{title}</EmptyTitle>
         {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
+      {children}
       {starterPrompts?.length ? (
         <EmptyContent>
           <div className="flex flex-wrap items-center justify-center gap-2">
