@@ -10,6 +10,7 @@ import { HealthProfileModule } from './health-profile/health-profile.module.js';
 import { MedicationDosesModule } from './medication-doses/medication-doses.module.js';
 import { MedicationsModule } from './medications/medications.module.js';
 import { resolveUserFrom } from './persona/resolve-user.js';
+import { RemindersModule } from './reminders/reminders.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { resolveUserFrom } from './persona/resolve-user.js';
     MedicationsModule,
     MedicationDosesModule,
     HealthMeasurementsModule,
+    RemindersModule,
     // SKIP_DB lets `generate:openapi` build the Swagger doc in environments with no
     // real Persona credentials configured (a fresh checkout, CI). PersonaModule uses
     // getOrThrow for those, so it needs this gate; it isn't part of the typed SDK
