@@ -47,6 +47,33 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
+const DEFAULT_TITLES = new Set(["New Conversation", "New Chat", "Main Chat", "Untitled", "Default Thread"]);
+
+function usePrevious<T>(value: T): T | undefined {
+  const ref = React.useRef<T>(value);
+  React.useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+
+function ThreadTitle({ title }: { title: string }) {
+  const display = title || "New chat";
+  const prev = usePrevious(display);
+  const isNewTitle = Boolean(
+    prev && prev !== display && DEFAULT_TITLES.has(prev) && !DEFAULT_TITLES.has(display),
+  );
+  // key forces remount + animation restart when title changes from default to AI title
+  return (
+    <span
+      key={isNewTitle ? display : undefined}
+      className={isNewTitle ? "thread-title-reveal inline-block max-w-full truncate" : "inline-block max-w-full truncate"}
+    >
+      {display}
+    </span>
+  );
+}
+
 function ThreadRow({
   thread,
   active,
@@ -111,7 +138,7 @@ function ThreadRow({
           // title would run past the row instead of ellipsing. The row is the
           // title's to fill now that the actions float over it.
           <ItemTitle className="w-full min-w-0 truncate">
-            {thread.title || "New chat"}
+            <ThreadTitle title={thread.title ?? ""} />
           </ItemTitle>
         )}
       </ItemContent>
@@ -248,7 +275,9 @@ function ThreadSidebar({
   };
 
   return (
-    <Sidebar>
+    <>
+      <style>{`@keyframes thread-title-reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}.thread-title-reveal{animation:thread-title-reveal 0.62s cubic-bezier(0.22,1,0.36,1) forwards;will-change:clip-path}`}</style>
+      <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <Button
           type="button"
@@ -354,7 +383,8 @@ function ThreadSidebar({
           </Tooltip>
         </div>
       </SidebarFooter>
-    </Sidebar>
+      </Sidebar>
+    </>
   );
 }
 
