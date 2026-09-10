@@ -44,9 +44,9 @@ function ReasoningBlock({
   if (isStreaming) {
     return (
       <div className={cn("max-w-full select-text", className)}>
-        <ThinkingIndicator />
+        <ThinkingIndicator className="pl-0" />
         {hasContent ? (
-          <MessageMarkdown muted content={reasoning.content} />
+          <MessageMarkdown muted content={reasoning.content} className="pl-0" />
         ) : null}
       </div>
     );
@@ -67,7 +67,7 @@ function ReasoningBlock({
             variant="ghost"
             size="xs"
             aria-expanded={open}
-            className="group h-auto gap-1.5 rounded-sm py-0.5 text-xs font-medium italic opacity-80 hover:opacity-100"
+            className="group h-auto gap-1.5 rounded-sm px-0 py-0.5 text-xs font-medium italic opacity-80 hover:opacity-100"
           >
             <span className="font-medium tracking-tight">Thought</span>
             <CaretDownIcon
@@ -76,8 +76,8 @@ function ReasoningBlock({
           </Button>
         }
       />
-      <CollapsibleContent className="mt-1">
-        <MessageMarkdown muted content={reasoning.content} />
+      <CollapsibleContent className="mt-1 pl-0">
+        <MessageMarkdown muted content={reasoning.content} className="pl-0" />
       </CollapsibleContent>
     </Collapsible>
   );

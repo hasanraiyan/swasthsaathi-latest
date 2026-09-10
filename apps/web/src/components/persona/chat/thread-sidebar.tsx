@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { PersonaThread } from "@personaai/react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Item, ItemContent, ItemTitle, ItemActions } from "@/components/ui/item";
@@ -219,6 +219,9 @@ function ThreadSidebar({
   // close button to get out of it (the Sheet's own is suppressed by the
   // Sidebar primitive's mobile styling).
   const { isMobile, setOpenMobile } = useSidebar();
+  const { user } = useUser();
+  const displayName =
+    user?.fullName || user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress || "Account";
   const closeIfMobile = React.useCallback(() => {
     if (isMobile) setOpenMobile(false);
   }, [isMobile, setOpenMobile]);
@@ -270,23 +273,28 @@ function ThreadSidebar({
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="flex min-w-0 items-center gap-1">
-          {/* showName so the account is identifiable at a glance rather than
-              being just an unlabelled avatar; truncation is handled below
-              because a long email will otherwise push the settings button off
-              the panel. */}
-          <div className="min-w-0 flex-1">
-            <UserButton
-              showName
-              appearance={{
-                elements: {
-                  rootBox: "min-w-0 w-full",
-                  userButtonBox: "min-w-0 w-full",
-                  userButtonOuterIdentifier:
-                    "min-w-0 truncate text-xs text-sidebar-foreground",
-                },
-              }}
-            />
+        <div className="flex min-w-0 items-center gap-2.5 rounded-xl bg-sidebar-accent px-2.5 py-2">
+          {/* avatar to the left, name to the right — explicit split so alignment is left-avatar + name, not Clerk's internal showName layout */}
+          <UserButton
+            appearance={{
+              elements: {
+                rootBox: "shrink-0",
+                userButtonBox: "shrink-0",
+                userButtonTrigger: "size-8 rounded-full",
+                userButtonAvatarBox: "size-8 rounded-full",
+                userButtonAvatarImage: "rounded-full",
+              },
+            }}
+          />
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-sm font-medium leading-none text-sidebar-foreground">
+              {displayName}
+            </div>
+            {user?.primaryEmailAddress?.emailAddress && (
+              <div className="truncate text-xs leading-none text-muted-foreground">
+                {user.primaryEmailAddress.emailAddress}
+              </div>
+            )}
           </div>
 
           {/* Inert by design — the settings surface doesn't exist yet. The

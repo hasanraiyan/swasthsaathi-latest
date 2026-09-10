@@ -59,11 +59,9 @@ function VoiceModeIcon(props: React.SVGProps<SVGSVGElement>) {
  * contents via `has-disabled` when any child is disabled, which would wash
  * out the text field too.
  *
- * Deliberately no custom rounding/background overrides here — `InputGroup`/
- * `InputGroupButton` already carry this app's actual look (sharp
- * `rounded-none` everywhere, `Button`'s own variant colors), stacking a
- * borrowed rounded-pill/rounded-full treatment on top of them is exactly
- * what looked inconsistent and over-padded before.
+ * Soft Clinical — InputGroup is now curved (rounded-2xl) with soft
+ * shadow via shadcn; no extra overrides needed. Buttons are pill/
+ * rounded-full via InputGroupButton variants.
  */
 function ChatComposer({
   value,
@@ -114,7 +112,7 @@ function ChatComposer({
         submit();
       }}
     >
-      <InputGroup>
+      <InputGroup className="rounded-2xl px-1 py-1">
         <InputGroupTextarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -137,7 +135,7 @@ function ChatComposer({
           className="max-h-40"
         />
 
-        <InputGroupAddon align="block-end" className="justify-end">
+        <InputGroupAddon align="block-end" className="justify-end rounded-b-2xl px-2 pb-2">
           {isLoadingHistory ? (
             // `size-7` matches `size="icon-sm"` exactly, so the slot occupies
             // the same box and the row does not resize as the fetch settles.
