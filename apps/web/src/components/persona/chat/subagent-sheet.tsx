@@ -11,6 +11,7 @@ import {
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { WrenchIcon } from "@phosphor-icons/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { MessageMarkdown } from "./message-markdown";
 import { humanizeToolName } from "./tool-call-card";
 import { RequestResponsePanel } from "./tool-cards/request-response-panel";
@@ -120,13 +121,14 @@ function SubagentSheet({
             A helper the agent delegated a step to — its own activity timeline.
           </SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <div className="flex flex-col gap-3">
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-3 px-4 py-4">
             {blocks.map((block, i) => (
               <SubagentActivityBlock key={i} block={block} />
             ))}
           </div>
-        </div>
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

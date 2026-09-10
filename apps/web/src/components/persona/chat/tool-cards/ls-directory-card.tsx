@@ -11,8 +11,9 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Item } from "@/components/ui/item";
 import { parseToolArgs, parseLsResults, buildLsTree, getToolCallStatus, type LsTreeNode } from "./utils";
 import type { PersonaToolCall } from "@personaai/react";
 
@@ -41,13 +42,15 @@ function TreeRow({ node, depth, collapsed, onToggle }: {
 
   if (!node.isDir) {
     return (
-      <div
+      <Item
+        size="sm"
+        variant="default"
         style={indent}
-        className="flex min-w-0 items-center gap-1.5 py-1 pr-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+        className="min-w-0 justify-start gap-1.5 rounded-none py-1 pr-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground"
       >
         {fileIcon(node.name)}
         <span className="whitespace-nowrap font-mono">{node.name}</span>
-      </div>
+      </Item>
     );
   }
 
@@ -136,6 +139,8 @@ export function LsDirectoryCard({ toolCall }: { toolCall: PersonaToolCall }) {
                 <TreeRow key={node.path} node={node} depth={0} collapsed={collapsedPaths} onToggle={toggleNode} />
               ))}
             </div>
+            <ScrollBar orientation="vertical" />
+            <ScrollBar orientation="horizontal" />
           </ScrollArea>
         ) : (
           <Empty className="p-4">

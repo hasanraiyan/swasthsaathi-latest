@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { CaretRightIcon, CaretDownIcon } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue };
@@ -53,7 +55,7 @@ function JsonNode({ keyName, value, depth }: { keyName: string | number | null; 
 
   if (!isObject || isEmpty) {
     return (
-      <div className="flex gap-1.5 py-0.5 font-mono text-[11px] leading-relaxed">
+      <div className="flex gap-1.5 py-0.5 font-mono text-xs leading-relaxed">
         {keyName != null && <span className="shrink-0 font-semibold text-foreground">{keyName}:</span>}
         <span className={cn("break-all", isEmpty ? "text-muted-foreground" : valueClass(value))}>
           {isEmpty ? (isArray ? "[]" : "{}") : formatPrimitive(value)}
@@ -67,11 +69,15 @@ function JsonNode({ keyName, value, depth }: { keyName: string | number | null; 
     : Object.entries(value as object);
 
   return (
-    <div className="font-mono text-[11px] leading-relaxed">
-      <button
+    <div className="font-mono text-xs leading-relaxed">
+      <Button
         type="button"
+        variant="ghost"
+        size="xs"
+        aria-expanded={open}
+        aria-label={keyName ? `${String(keyName)} ${open ? "collapse" : "expand"}` : open ? "Collapse" : "Expand"}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-1 py-0.5 text-left hover:bg-muted"
+        className="flex h-auto w-full items-start justify-start gap-1 rounded-none py-0.5 text-left text-xs font-normal hover:bg-muted"
       >
         {open ? (
           <CaretDownIcon className="size-3 mt-0.5 shrink-0 text-muted-foreground" />
@@ -86,13 +92,16 @@ function JsonNode({ keyName, value, depth }: { keyName: string | number | null; 
             <span className="text-muted-foreground">{collapsedPreview(value)}</span>
           )}
         </span>
-      </button>
+      </Button>
 
       {open && (
-        <div className="ml-4 border-l border-border pl-2.5">
-          {entries.map(([k, v]) => (
-            <JsonNode key={k} keyName={isArray ? null : k} value={v} depth={depth + 1} />
-          ))}
+        <div className="ml-4 flex gap-2 pl-0">
+          <Separator orientation="vertical" />
+          <div className="flex min-w-0 flex-1 flex-col pl-2.5">
+            {entries.map(([k, v]) => (
+              <JsonNode key={k} keyName={isArray ? null : k} value={v} depth={depth + 1} />
+            ))}
+          </div>
         </div>
       )}
       {open && <div className="text-muted-foreground">{isArray ? "]" : "}"}</div>}
@@ -108,7 +117,7 @@ function JsonNode({ keyName, value, depth }: { keyName: string | number | null; 
 export function JsonTreeView({ data, className }: { data: unknown; className?: string }) {
   if (data === null || typeof data !== "object") {
     return (
-      <div className={cn("font-mono text-[11px]", valueClass(data as JsonValue), className)}>
+      <div className={cn("font-mono text-xs", valueClass(data as JsonValue), className)}>
         {formatPrimitive(data as JsonValue)}
       </div>
     );
@@ -119,7 +128,7 @@ export function JsonTreeView({ data, className }: { data: unknown; className?: s
     : Object.entries(data as object);
   if (entries.length === 0) {
     return (
-      <div className={cn("font-mono text-[11px] text-muted-foreground", className)}>
+      <div className={cn("font-mono text-xs text-muted-foreground", className)}>
         {Array.isArray(data) ? "[]" : "{}"}
       </div>
     );

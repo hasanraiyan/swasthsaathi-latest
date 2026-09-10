@@ -2,6 +2,12 @@
 
 import * as React from "react";
 import { FileCodeIcon, FileTextIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { Item } from "@/components/ui/item";
 import { parseToolArgs, CODE_EXTENSIONS, fileExtOf, getToolCallStatus } from "./utils";
 import type { PersonaToolCall } from "@personaai/react";
 
@@ -72,7 +78,7 @@ function highlightMatch(text: string, query: string) {
       <span>
         {parts.map((part, i) =>
           part.toLowerCase() === query.toLowerCase() ? (
-            <mark key={i} className="bg-yellow-100 text-foreground rounded-[2px] px-0.5 font-semibold dark:bg-yellow-500/35">
+            <mark key={i} className="rounded-[2px] bg-[var(--mark-highlight)] px-0.5 font-semibold text-foreground dark:bg-[var(--mark-highlight-dark)]">
               {part}
             </mark>
           ) : (
@@ -103,54 +109,58 @@ export function GrepResultsView({ toolCall }: { toolCall: PersonaToolCall }) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <span className="text-muted-foreground font-semibold uppercase tracking-wider">Grep:</span>
-        <span className="inline-flex items-center gap-1 bg-blue-50 px-2 py-0.5 font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-400">
+        <Badge variant="secondary" className="gap-1 bg-blue-50 font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-400">
           <MagnifyingGlassIcon className="size-3" />
           &quot;{query}&quot;
-        </span>
+        </Badge>
         <span className="text-muted-foreground">in</span>
-        <span className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 font-semibold text-foreground">{path}</span>
+        <Badge variant="secondary" className="font-semibold">{path}</Badge>
       </div>
 
       {!done ? (
         <div className="flex flex-col gap-1.5">
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Searching…</div>
-          <div className="h-8 bg-muted animate-pulse" />
+          <Skeleton className="h-8 w-full" aria-busy="true" />
         </div>
       ) : groupEntries.length > 0 ? (
-        <div className="max-h-60 overflow-auto flex flex-col gap-2.5">
+        <ScrollArea className="max-h-60">
+          <div className="flex flex-col gap-2.5 pr-2">
           {groupEntries.map(([filePath, matches]) => {
             const fileName = filePath.split("/").pop() || filePath;
             const isCode = CODE_EXTENSIONS.includes(fileExtOf(fileName));
             const FileIcon = isCode ? FileCodeIcon : FileTextIcon;
 
             return (
-              <div key={filePath} className="border border-border bg-card overflow-hidden">
-                <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-2.5 py-1.5">
+              <Card key={filePath} className="gap-0 overflow-hidden rounded-none py-0">
+                <CardHeader className="flex flex-row items-center gap-2 border-b bg-muted/50 px-2.5 py-1.5">
                   <FileIcon className="size-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-foreground font-mono">{filePath}</span>
-                  <span className="ml-auto bg-muted px-1 py-0.5 text-[9px] font-bold text-muted-foreground">
+                  <span className="truncate font-mono text-xs font-semibold text-foreground">{filePath}</span>
+                  <Badge variant="secondary" className="ml-auto px-1 py-0.5 text-[10px] font-bold">
                     {matches.length} {matches.length === 1 ? "match" : "matches"}
-                  </span>
-                </div>
-
-                <div className="divide-y divide-border font-mono text-[11px] leading-relaxed">
-                  {matches.map((match, i) => (
-                    <div key={i} className="flex hover:bg-muted/50">
-                      {match.line > 0 && (
-                        <div className="w-9 shrink-0 select-none border-r border-border py-1.5 pr-2.5 text-right font-bold text-muted-foreground">
-                          {match.line}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-border font-mono text-xs leading-relaxed">
+                    {matches.map((match, i) => (
+                      <Item key={i} size="sm" variant="default" className="flex-row gap-0 rounded-none p-0 hover:bg-muted/50">
+                        {match.line > 0 && (
+                          <div className="flex w-9 shrink-0 select-none items-center justify-end border-r border-border py-1.5 pr-2.5 text-right font-bold text-muted-foreground">
+                            {match.line}
+                          </div>
+                        )}
+                        <div className="flex-1 py-1.5 pl-3 pr-2 whitespace-pre-wrap break-all text-foreground">
+                          {highlightMatch(match.content, query)}
                         </div>
-                      )}
-                      <div className="flex-1 py-1.5 pl-3 pr-2 whitespace-pre-wrap break-all text-foreground">
-                        {highlightMatch(match.content, query)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                      </Item>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
-        </div>
+          </div>
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
       ) : (
         <div className="text-xs text-muted-foreground italic">No matches found.</div>
       )}

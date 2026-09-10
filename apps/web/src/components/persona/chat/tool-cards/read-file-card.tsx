@@ -2,6 +2,8 @@
 
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { getReadFileToolDetails, CODE_EXTENSIONS, fileExtOf, getToolCallStatus } from "./utils";
 import type { PersonaToolCall } from "@personaai/react";
 
@@ -61,9 +63,16 @@ export function ReadFileCard({ toolCall }: { toolCall: PersonaToolCall }) {
 
   if (!details) {
     return (
-      <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-foreground bg-muted p-2.5 rounded-none border border-border">
-        {toolCall.result || "No result yet."}
-      </pre>
+      <Card className="rounded-none py-0">
+        <CardContent className="p-0">
+          <ScrollArea className="max-h-56 bg-muted">
+            <pre className="whitespace-pre-wrap break-words p-2.5 font-mono text-xs leading-5 text-foreground">
+              {toolCall.result || "No result yet."}
+            </pre>
+            <ScrollBar orientation="vertical" />
+          </ScrollArea>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -73,53 +82,55 @@ export function ReadFileCard({ toolCall }: { toolCall: PersonaToolCall }) {
   const done = getToolCallStatus(toolCall) !== "running";
 
   return (
-    <div className="flex flex-col rounded-none border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border bg-muted/50 px-3 py-2">
-        <div className="flex items-center gap-2 min-w-0">
+    <Card className="gap-0 overflow-hidden rounded-none py-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 border-b bg-muted/50 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
           <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-xs font-semibold text-foreground font-mono">{filePath}</span>
+          <span className="truncate font-mono text-xs font-semibold text-foreground">{filePath}</span>
         </div>
-      </div>
+      </CardHeader>
 
       {!done ? (
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
           <Spinner className="size-5 mb-2 text-primary" />
-          <span className="text-[11px] font-bold uppercase tracking-wider">Reading file content…</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Reading file content…</span>
         </div>
       ) : content ? (
-        <div className="relative max-h-72 overflow-auto bg-[#0D1117] font-mono text-[11.5px] text-[#C9D1D9]">
+        <ScrollArea orientation="both" className="max-h-72 bg-[var(--code-bg)] font-mono text-xs text-[var(--code-fg)]">
           <div className="flex min-w-full">
-            <div className="w-10 shrink-0 select-none border-r border-[#30363D] bg-[#161B22]/50 py-3 text-right pr-3 text-[10px] font-bold text-[#8B949E]">
+            <div className="w-10 shrink-0 select-none border-r border-[var(--code-gutter-border)] bg-[var(--code-gutter-bg)] py-3 pr-3 text-right text-[10px] font-bold text-[var(--code-gutter-fg)]">
               {lineNumbers.map((num, i) => (
                 <div key={i} className="h-5 leading-5">
                   {num}
                 </div>
               ))}
             </div>
-            <div className="flex-1 py-3 pl-3 pr-4 overflow-x-auto select-text">
+            <div className="flex-1 py-3 pl-3 pr-4 select-text">
               {lines.map((line, i) => (
-                <pre key={i} className="h-5 leading-5 whitespace-pre font-mono text-[#E6EDF2]">
+                <pre key={i} className="h-5 leading-5 whitespace-pre font-mono text-[var(--code-line-fg)]">
                   {line || " "}
                 </pre>
               ))}
             </div>
           </div>
-        </div>
+          <ScrollBar orientation="vertical" />
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       ) : (
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
           <FileTextIcon className="size-7 mb-2" />
-          <span className="text-[11px] font-bold uppercase tracking-wider">Empty file or no content</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Empty file or no content</span>
         </div>
       )}
 
       {done && content && (
-        <div className="flex items-center justify-between border-t border-border bg-muted/50 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-tight select-none">
+        <CardFooter className="flex items-center justify-between bg-muted/50 px-3 py-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground select-none">
           <div>
             Showing lines {lineNumbers[0]}-{lineNumbers[lineNumbers.length - 1]}
           </div>
           <div>{lines.length} lines</div>
-        </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }

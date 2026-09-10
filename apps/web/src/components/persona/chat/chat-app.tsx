@@ -18,6 +18,8 @@ import {
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { MicrophoneIcon, MicrophoneSlashIcon, PhoneXIcon } from "@phosphor-icons/react";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
@@ -423,8 +425,11 @@ function ChatApp() {
             silent "How can I help?" on a thread that really does have
             messages. Surface it instead of letting it read as an empty chat. */}
         {chat.error ? (
-          <div className="px-4 pb-2 text-center text-xs text-destructive">
-            {chat.error.message}
+          <div className="px-4 pb-2">
+            <Alert variant="destructive">
+              <AlertTitle>Failed to load</AlertTitle>
+              <AlertDescription>{chat.error.message}</AlertDescription>
+            </Alert>
           </div>
         ) : null}
 
@@ -465,7 +470,8 @@ function ChatApp() {
           </div>
         )}
 
-        <div className="border-t border-border p-3">
+        <Separator />
+        <div className="p-3">
           <div className="mx-auto w-full max-w-3xl">
             <ChatComposer
               value={chat.input}

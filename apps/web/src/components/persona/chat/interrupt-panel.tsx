@@ -16,6 +16,8 @@ import {
   QuestionnaireSubmit,
 } from "@/components/ui/questionnaire";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { ToolCallCard, humanizeToolName } from "./tool-call-card";
 import type { PersonaInterrupt } from "@personaai/react";
@@ -40,7 +42,8 @@ function InterruptPanel({
 }) {
   if (interrupt.kind === "hitl") {
     return (
-      <div className="flex flex-col gap-2 rounded-none border border-border bg-card p-3">
+      <Card size="sm" className="gap-2 rounded-none">
+        <CardContent className="flex flex-col gap-2 p-3">
         <div className="text-xs font-semibold text-muted-foreground">
           Waiting for your approval to continue
         </div>
@@ -56,7 +59,7 @@ function InterruptPanel({
                   system prompt, etc.) grow tall enough to push the
                   Approve/Reject buttons off-screen. Still capped + scrollable
                   for whenever it IS expanded. */}
-              <div className="max-h-[50vh] overflow-y-auto">
+              <ScrollArea className="max-h-[50vh]">
                 <ToolCallCard
                   toolCall={{
                     toolCallId: `hitl-${index}`,
@@ -69,7 +72,8 @@ function InterruptPanel({
                   // exactly the forced-open behavior this panel doesn't want.
                   defaultOpen={false}
                 />
-              </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
               <div className="flex items-center justify-end gap-2">
                 <Button
                   type="button"
@@ -92,7 +96,8 @@ function InterruptPanel({
             </div>
           );
         })}
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -110,7 +115,8 @@ function InterruptPanel({
   };
 
   return (
-    <div className="rounded-none border border-border bg-card p-3">
+    <Card size="sm" className="rounded-none">
+      <CardContent className="p-3">
       <Questionnaire
         items={questions.map((q) => ({
           name: q.id,
@@ -147,7 +153,8 @@ function InterruptPanel({
           <QuestionnaireSubmit />
         </QuestionnaireActions>
       </Questionnaire>
-    </div>
+        </CardContent>
+      </Card>
   );
 }
 

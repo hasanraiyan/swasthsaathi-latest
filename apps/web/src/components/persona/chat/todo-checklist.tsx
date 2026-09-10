@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CheckCircleIcon, ClockIcon, CircleIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { ItemGroup, Item, ItemMedia, ItemContent } from "@/components/ui/item";
 import type { PersonaTodo } from "@personaai/react";
 
 function TodoStatusIcon({ status }: { status: PersonaTodo["status"] }) {
@@ -30,32 +31,34 @@ function TodoChecklist({
   if (!todos?.length) return null;
 
   return (
-    <ul className={cn("flex flex-col", className)}>
+    <ItemGroup className={cn("gap-0", className)}>
       {todos.map((todo, i) => {
         const isCompleted = todo.status === "completed";
         const isInProgress = todo.status === "in_progress";
 
         return (
-          <li key={i} className="flex items-start gap-2 py-[3px]">
-            <span className="mt-px shrink-0">
+          <Item key={i} variant="default" size="sm" className="gap-2 rounded-none py-1">
+            <ItemMedia variant="icon" className="mt-px self-start bg-transparent">
               <TodoStatusIcon status={todo.status} />
-            </span>
-            <span
-              className={cn(
-                "min-w-0 flex-1 wrap-break-word text-[12.5px] leading-5",
-                isCompleted
-                  ? "text-muted-foreground/70 line-through"
-                  : isInProgress
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground"
-              )}
-            >
-              {todo.content}
-            </span>
-          </li>
+            </ItemMedia>
+            <ItemContent>
+              <span
+                className={cn(
+                  "wrap-break-word text-xs leading-5",
+                  isCompleted
+                    ? "text-muted-foreground/70 line-through"
+                    : isInProgress
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground"
+                )}
+              >
+                {todo.content}
+              </span>
+            </ItemContent>
+          </Item>
         );
       })}
-    </ul>
+    </ItemGroup>
   );
 }
 

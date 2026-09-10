@@ -28,7 +28,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useIsSmUp } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -159,19 +161,7 @@ const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   md: "markdown",
 };
 
-// react-resizable-panels' <Panel> silently drops the className prop, so its
-// "hidden sm:flex" visibility can't be CSS-only — this mirrors Tailwind's sm breakpoint in JS.
-function useIsSmUp() {
-  const [isSmUp, setIsSmUp] = React.useState<boolean | undefined>(undefined);
-  React.useEffect(() => {
-    const mql = window.matchMedia("(min-width: 640px)");
-    const onChange = () => setIsSmUp(mql.matches);
-    mql.addEventListener("change", onChange);
-    onChange();
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-  return isSmUp;
-}
+
 
 export interface FileExplorerEditorProps<T extends ExplorerItem> {
   /** null = still loading (shows skeleton). */
@@ -469,9 +459,13 @@ export function FileExplorerEditor<T extends ExplorerItem>({
         return (
           <div key={node.path} className="flex flex-col">
             <div className="group flex items-center justify-between pr-1">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 style={indent}
+                aria-expanded={!isCollapsed}
+                aria-label={isCollapsed ? `Expand ${node.name}` : `Collapse ${node.name}`}
                 onClick={() => {
                   setCollapsedFolders((prev) => {
                     const next = new Set(prev);
@@ -480,7 +474,7 @@ export function FileExplorerEditor<T extends ExplorerItem>({
                     return next;
                   });
                 }}
-                className="flex flex-1 items-center gap-1.5 truncate py-1 pr-2 text-xs text-muted-foreground hover:text-foreground text-left"
+                className="flex flex-1 items-center justify-start gap-1.5 truncate py-1 pr-2 text-xs font-normal text-muted-foreground hover:text-foreground text-left"
               >
                 {isCollapsed ? (
                   <CaretRightIcon className="size-3 shrink-0" />
@@ -493,19 +487,21 @@ export function FileExplorerEditor<T extends ExplorerItem>({
                   <FolderOpenIcon className="size-3.5 shrink-0" />
                 )}
                 <span className="truncate font-medium">{node.name}</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`Add file inside ${node.name}`}
                 onClick={() => {
                   setAddFileItemId(item.id);
                   setNewFilePath(`${node.path}/`);
                   setShowAddFileDialog(true);
                 }}
-                className="size-5 flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"
-                title={`Add file inside ${node.name}`}
+                className="size-5 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
               >
                 <PlusIcon className="size-3" />
-              </button>
+              </Button>
             </div>
             {!isCollapsed && node.children && renderFileNodes(node.children, item, depth + 1)}
           </div>
@@ -514,15 +510,18 @@ export function FileExplorerEditor<T extends ExplorerItem>({
       const isActive = activeTabKey === tabKey(item.id, node.path);
       return (
         <div key={node.path} className="group flex items-center gap-0.5">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="xs"
             style={indent}
+            aria-current={isActive ? "true" : undefined}
             onClick={() => openFileTab(item, node.path)}
-            className={`flex flex-1 items-center gap-1.5 truncate rounded-none py-1 pr-1 text-left text-xs ${isActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
+            className={`flex flex-1 items-center justify-start gap-1.5 truncate rounded-none py-1 pr-1 text-left text-xs ${isActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
           >
             <FileIcon path={node.path} className="size-3.5 shrink-0" />
             <span className="truncate">{node.name}</span>
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -555,26 +554,33 @@ export function FileExplorerEditor<T extends ExplorerItem>({
         return (
           <div key={item.id} className="flex flex-col">
             <div className="group flex items-center gap-1">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? `Collapse ${item.name}` : `Expand ${item.name}`}
                 onClick={() => toggleExpand(item.id)}
-                className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                className="size-5 shrink-0"
               >
                 {isExpanded ? <CaretDownIcon className="size-3" /> : <CaretRightIcon className="size-3" />}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
+                aria-expanded={isExpanded}
                 onClick={() => {
                   toggleExpand(item.id);
                   if (item.rootContent !== undefined) {
                     openFileTab(item, null);
                   }
                 }}
-                className="flex flex-1 items-center gap-1.5 truncate rounded-none px-1 py-1 text-left text-xs hover:bg-muted/60"
+                className="flex flex-1 items-center justify-start gap-1.5 truncate rounded-none px-1 py-1 text-left text-xs font-normal hover:bg-muted/60"
               >
                 {isExpanded ? <FolderOpenIcon className="size-3.5 shrink-0" /> : <FolderIcon className="size-3.5 shrink-0" />}
                 <span className="truncate font-medium">{item.name}</span>
-              </button>
+              </Button>
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -585,30 +591,39 @@ export function FileExplorerEditor<T extends ExplorerItem>({
               </Button>
             </div>
             {isExpanded && (
-              <div className="ml-4 flex flex-col border-l pl-2">
-                {item.rootContent !== undefined && (
-                  <button
+              <div className="ml-4 flex gap-2 pl-2">
+                <Separator orientation="vertical" className="shrink-0" />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  {item.rootContent !== undefined && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      aria-current={isRootActive ? "true" : undefined}
+                      onClick={() => openFileTab(item, null)}
+                      className={`flex w-full items-center justify-start gap-1.5 truncate rounded-none px-2 py-1 text-left text-xs font-normal ${isRootActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
+                    >
+                      <FileTextIcon className="size-3.5 shrink-0" />
+                      <span className="truncate">{item.rootFileName || rootFileName}</span>
+                    </Button>
+                  )}
+                  {renderFileNodes(buildFileTree(item.files ?? []), item, 0)}
+                  <Button
                     type="button"
-                    onClick={() => openFileTab(item, null)}
-                    className={`flex items-center gap-1.5 truncate rounded-none px-2 py-1 text-left text-xs ${isRootActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
+                    variant="ghost"
+                    size="xs"
+                    aria-label={`Add file to ${item.name}`}
+                    onClick={() => {
+                      setAddFileItemId(item.id);
+                      setNewFilePath("");
+                      setShowAddFileDialog(true);
+                    }}
+                    className="flex w-full items-center justify-start gap-1.5 px-2 py-1 text-left text-xs font-normal text-muted-foreground hover:text-foreground"
                   >
-                    <FileTextIcon className="size-3.5 shrink-0" />
-                    <span className="truncate">{item.rootFileName || rootFileName}</span>
-                  </button>
-                )}
-                {renderFileNodes(buildFileTree(item.files ?? []), item, 0)}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddFileItemId(item.id);
-                    setNewFilePath("");
-                    setShowAddFileDialog(true);
-                  }}
-                  className="flex items-center gap-1.5 px-2 py-1 text-left text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <PlusIcon className="size-3" />
-                  <span>Add file</span>
-                </button>
+                    <PlusIcon className="size-3" />
+                    <span>Add file</span>
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -733,7 +748,7 @@ export function FileExplorerEditor<T extends ExplorerItem>({
               </ScrollArea>
               <div className="border-t px-3 py-2 text-[10px] text-muted-foreground">{items.length} {itemLabelPlural}</div>
             </div>
-            <button type="button" className="flex-1 bg-black/20" onClick={() => setMobileExplorerOpen(false)} />
+            <button type="button" aria-label="Close explorer" className="flex-1 bg-black/20" onClick={() => setMobileExplorerOpen(false)} />
           </div>
         )}
 
@@ -765,7 +780,8 @@ export function FileExplorerEditor<T extends ExplorerItem>({
           ) : (
             <>
               {/* Tabs bar - VS Code style, one tab per open file across any item */}
-              <div className="flex h-9 shrink-0 items-center gap-0 overflow-x-auto border-b bg-muted/20">
+              <ScrollArea orientation="horizontal" className="flex h-9 shrink-0 border-b bg-muted/20">
+                <div className="flex h-9 items-center gap-0">
                 {openTabs.map((tab) => {
                   const tabItem = items.find((i) => i.id === tab.itemId);
                   const label = tab.path ?? rootFileName;
@@ -784,16 +800,19 @@ export function FileExplorerEditor<T extends ExplorerItem>({
                         <span className="max-w-[140px] truncate">{label}</span>
                       </span>
                       {tab.isDirty && <span className="size-1.5 shrink-0 rounded-full bg-primary" />}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Close ${tab.path ?? rootFileName}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           closeTab(tab.key);
                         }}
-                        className="ml-1 shrink-0 rounded-sm p-0.5 hover:bg-muted"
+                        className="ml-1 size-5 shrink-0"
                       >
                         <XIcon className="size-3" />
-                      </button>
+                      </Button>
                     </div>
                   );
                 })}
@@ -801,7 +820,8 @@ export function FileExplorerEditor<T extends ExplorerItem>({
                 {renderTabExtras && (
                   <div className="hidden items-center gap-1 pr-2 sm:flex">{renderTabExtras(activeItem, activeTab?.path)}</div>
                 )}
-              </div>
+                </div>
+              </ScrollArea>
 
               {/* Breadcrumb */}
               <div className="flex h-6 shrink-0 items-center gap-1 border-b bg-muted/10 px-3 text-[11px] text-muted-foreground">
@@ -824,14 +844,16 @@ export function FileExplorerEditor<T extends ExplorerItem>({
 
                   {/* Right side panel - hidden on small, visible on xl */}
                   {renderSidePanel && (
-                    <div className="hidden w-[320px] shrink-0 border-l bg-muted/5 xl:flex xl:flex-col">
-                      {renderSidePanel(activeItem, activeTab?.path)}
+                    <div className="hidden w-[320px] shrink-0 bg-muted/5 xl:flex xl:flex-col">
+                      <Separator orientation="vertical" />
+                      <div className="flex min-w-0 flex-1 flex-col">{renderSidePanel(activeItem, activeTab?.path)}</div>
                     </div>
                   )}
                 </div>
 
                 {/* Status bar - VS Code style */}
-                <div className="flex h-6 shrink-0 items-center justify-between border-t bg-primary px-2 text-[11px] text-primary-foreground">
+                <Separator />
+                <div className="flex h-6 shrink-0 items-center justify-between bg-primary px-2 text-[11px] text-primary-foreground">
                   <div className="flex items-center gap-3">
                     <span className="hidden sm:inline">{isDirty ? "● Unsaved" : "✓ Saved"}</span>
                     <span className="hidden sm:inline">{activePath.endsWith(".md") ? "Markdown" : activePath.split(".").pop()?.toUpperCase() || "Plain Text"}</span>

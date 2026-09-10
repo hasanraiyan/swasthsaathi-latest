@@ -17,3 +17,15 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+export function useIsSmUp() {
+  const [isSmUp, setIsSmUp] = React.useState<boolean | undefined>(undefined)
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 640px)")
+    const onChange = () => setIsSmUp(mql.matches)
+    mql.addEventListener("change", onChange)
+    onChange()
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+  return isSmUp
+}

@@ -3,6 +3,10 @@
 import * as React from "react";
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { parseToolArgs, CODE_EXTENSIONS, fileExtOf } from "./utils";
 import type { PersonaToolCall } from "@personaai/react";
 
@@ -81,27 +85,30 @@ export function DiffView({
   let newNo = 1;
 
   return (
-    <div className="flex flex-col rounded-none border border-border bg-card overflow-hidden">
+    <Card className="gap-0 overflow-hidden rounded-none py-0">
       {fileName ? (
-        <div className="flex items-center justify-between border-b border-border bg-muted/50 px-3 py-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b bg-muted/50 px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-xs font-semibold text-foreground font-mono">{fileName}</span>
+            <span className="truncate font-mono text-xs font-semibold text-foreground">{fileName}</span>
           </div>
-          <span className="shrink-0 text-[10px] font-bold tabular-nums">
+          <Badge variant="secondary" className="shrink-0 gap-1 font-mono text-[10px] font-bold tabular-nums">
             <span className="text-emerald-600 dark:text-emerald-400">+{added}</span>{" "}
             <span className="text-red-500 dark:text-red-400">-{removed}</span>
-          </span>
-        </div>
+          </Badge>
+        </CardHeader>
       ) : null}
 
       {note ? (
-        <div className="border-b border-border bg-muted/40 px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">
-          {note}
-        </div>
+        <>
+          <div className="bg-muted/40 px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">
+            {note}
+          </div>
+          <Separator />
+        </>
       ) : null}
 
-      <div className="max-h-72 overflow-auto font-mono text-[11.5px] leading-5">
+      <ScrollArea orientation="both" className="max-h-72 font-mono text-xs leading-5">
         {rows.map((row, index) => {
           const displayOldNo = row.type !== "add" ? oldNo++ : null;
           const displayNewNo = row.type !== "remove" ? newNo++ : null;
@@ -114,10 +121,10 @@ export function DiffView({
                 row.type === "remove" && "bg-red-50 dark:bg-red-500/10"
               )}
             >
-              <span className="w-8 shrink-0 select-none border-r border-border px-1.5 text-right text-muted-foreground">
+              <span className="flex w-8 shrink-0 select-none items-stretch justify-end gap-0 border-r border-border px-1.5 text-right text-muted-foreground">
                 {displayOldNo ?? ""}
               </span>
-              <span className="w-8 shrink-0 select-none border-r border-border px-1.5 text-right text-muted-foreground">
+              <span className="flex w-8 shrink-0 select-none items-stretch justify-end gap-0 border-r border-border px-1.5 text-right text-muted-foreground">
                 {displayNewNo ?? ""}
               </span>
               <span
@@ -133,8 +140,10 @@ export function DiffView({
             </div>
           );
         })}
-      </div>
-    </div>
+        <ScrollBar orientation="vertical" />
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </Card>
   );
 }
 

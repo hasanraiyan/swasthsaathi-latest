@@ -13,6 +13,9 @@ import {
 } from "@modelcontextprotocol/ext-apps/app-bridge";
 
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 function parseJsonObject(value?: string): Record<string, unknown> {
@@ -330,51 +333,47 @@ export function McpAppRenderer({
 
   if (error) {
     return (
-      <div
-        className={cn(
-          "rounded-none border border-destructive/30 bg-destructive/10 p-4 text-destructive",
-          className
-        )}
+      <Alert
+        variant="destructive"
+        className={cn("rounded-none", className)}
       >
-        <div className="flex items-start gap-2.5">
-          <WarningCircleIcon className="size-5 shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <p className="text-xs font-semibold">Failed to load MCP App</p>
-            <p className="mt-1 text-xs opacity-80">{error}</p>
-          </div>
-        </div>
-      </div>
+        <WarningCircleIcon className="size-4" />
+        <AlertTitle>Failed to load MCP App</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <div
+    <Card
       className={cn(
-        "group relative rounded-none border border-border bg-card overflow-hidden transition-all",
+        "group relative gap-0 overflow-hidden rounded-none py-0",
         className
       )}
     >
       {/* Header bar */}
-      <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] truncate">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1.5 font-mono text-[11px] truncate">
           <AppWindowIcon className="size-3.5 text-primary shrink-0" />
           <span className="font-semibold text-foreground">{toolName || "MCP App"}</span>
           <span className="text-muted-foreground truncate">({resourceUri})</span>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label={expanded ? "Collapse" : "Expand"}
           onClick={toggleExpanded}
-          className="flex size-6 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-          title={expanded ? "Collapse" : "Expand"}
+          className="size-6 shrink-0"
         >
           {expanded ? (
             <ArrowsInIcon className="size-3.5" />
           ) : (
             <ArrowsOutIcon className="size-3.5" />
           )}
-        </button>
-      </div>
+        </Button>
+      </CardHeader>
 
       {/* Loading state */}
       {loading && (
@@ -410,6 +409,6 @@ export function McpAppRenderer({
         }
         title={`MCP App: ${toolName || resourceUri}`}
       />
-    </div>
+    </Card>
   );
 }

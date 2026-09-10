@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   resolveWorkspaceFile,
   type Workspace,
@@ -87,27 +88,29 @@ function PresentedFileSheet({
 
         <div className="flex-1 overflow-hidden">
           {lines.length > 0 ? (
-            <div className="h-full overflow-auto bg-[#0D1117] font-mono text-[11.5px] text-[#C9D1D9]">
+            <ScrollArea orientation="both" className="h-full bg-[var(--code-bg)] font-mono text-xs text-[var(--code-fg)]">
               <div className="flex min-w-full">
-                <div className="w-10 shrink-0 select-none border-r border-[#30363D] bg-[#161B22]/50 py-3 pr-3 text-right text-[10px] font-bold text-[#8B949E]">
+                <div className="w-10 shrink-0 select-none border-r border-[var(--code-gutter-border)] bg-[var(--code-gutter-bg)] py-3 pr-3 text-right text-[10px] font-bold text-[var(--code-gutter-fg)]">
                   {lines.map((_, i) => (
                     <div key={i} className="h-5 leading-5">
                       {i + 1}
                     </div>
                   ))}
                 </div>
-                <div className="flex-1 overflow-x-auto py-3 pl-3 pr-4 select-text">
+                <div className="flex-1 py-3 pl-3 pr-4 select-text">
                   {lines.map((line, i) => (
                     <pre
                       key={i}
-                      className="h-5 leading-5 whitespace-pre font-mono text-[#E6EDF2]"
+                      className="h-5 leading-5 whitespace-pre font-mono text-[var(--code-line-fg)]"
                     >
                       {line || " "}
                     </pre>
                   ))}
                 </div>
               </div>
-            </div>
+              <ScrollBar orientation="vertical" />
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-muted-foreground">
               <FileTextIcon className="size-7" />

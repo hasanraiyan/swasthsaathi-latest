@@ -12,6 +12,9 @@ import {
   FileTextIcon,
 } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { MessageMarkdown } from "./message-markdown";
 import { getToolCallStatus } from "./tool-cards/utils";
 import type { PersonaToolCall } from "@personaai/react";
@@ -191,10 +194,10 @@ export function summarizeUpsert(toolCall: PersonaToolCall): AgentUpsertSummary {
 // strip — reads at a glance instead of a label/value form grid.
 function MetaChip({ icon, children, title }: { icon: React.ReactNode; children: React.ReactNode; title?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title={title}>
+    <Badge variant="outline" className="gap-1.5 border-dashed font-normal text-muted-foreground" title={title}>
       {icon}
       {children}
-    </span>
+    </Badge>
   );
 }
 
@@ -224,15 +227,17 @@ function AgentUpsertBody({ summary }: { summary: AgentUpsertSummary }) {
           "…") already says this is in progress; a second "Writing agent
           configuration…" line under it was the same information twice. */}
       {isError ? (
-        <div className="flex items-start gap-2 rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          <WarningCircleIcon className="mt-0.5 size-3.5 shrink-0" />
-          <span>{message || "Failed to save the agent configuration."}</span>
-        </div>
+        <Alert variant="destructive" className="gap-2 py-2">
+          <WarningCircleIcon className="size-4" />
+          <AlertTitle className="text-xs">Failed to save the agent</AlertTitle>
+          <AlertDescription className="text-xs">{message || "Failed to save the agent configuration."}</AlertDescription>
+        </Alert>
       ) : succeeded ? (
-        <div className="flex items-center gap-2 rounded-none border border-emerald-500/20 bg-emerald-500/15 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
-          <CheckCircleIcon className="size-3.5 shrink-0 text-emerald-500" />
-          <span>{message || `Agent ${isUpdate ? "updated" : "created"}.`}</span>
-        </div>
+        <Alert className="gap-2 border-emerald-500/20 bg-emerald-500/15 py-2 text-emerald-700 dark:text-emerald-400 [&>svg]:text-emerald-500">
+          <CheckCircleIcon className="size-4" />
+          <AlertTitle className="text-xs text-emerald-700 dark:text-emerald-400">Success</AlertTitle>
+          <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-400">{message || `Agent ${isUpdate ? "updated" : "created"}.`}</AlertDescription>
+        </Alert>
       ) : null}
 
       {name ? (
@@ -298,9 +303,16 @@ function AgentUpsertBody({ summary }: { summary: AgentUpsertSummary }) {
             <FileTextIcon className="size-3.5" />
             Instructions
           </div>
-          <div className="max-h-40 overflow-y-auto rounded-none border border-border bg-muted/50 px-3 py-2">
-            <MessageMarkdown muted content={systemPrompt} />
-          </div>
+          <Card className="gap-0 rounded-none py-0">
+            <CardContent className="p-0">
+              <ScrollArea className="max-h-40 bg-muted/50">
+                <div className="px-3 py-2">
+                  <MessageMarkdown muted content={systemPrompt} />
+                </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
       ) : null}
     </>

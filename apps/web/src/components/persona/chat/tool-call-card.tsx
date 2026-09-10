@@ -17,6 +17,8 @@ import {
 import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription } from "@/components/ui/item";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { TodoChecklist } from "./todo-checklist";
 import { AgentUpsertBody, summarizeUpsert, type AgentUpsertSummary } from "./agent-upsert-card";
@@ -234,10 +236,10 @@ function ToolCallCard({
             {upsert?.subtitle ? <ItemDescription>{upsert.subtitle}</ItemDescription> : null}
           </ItemContent>
           {diffStats ? (
-            <span className="shrink-0 bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
+            <Badge variant="secondary" className="shrink-0 gap-1 font-mono text-[11px] tabular-nums">
               <span className="text-emerald-600 dark:text-emerald-400">+{diffStats.added}</span>{" "}
               <span className="text-red-500 dark:text-red-400">-{diffStats.removed}</span>
-            </span>
+            </Badge>
           ) : null}
           <CaretDownIcon
             className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
@@ -245,7 +247,8 @@ function ToolCallCard({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="mt-2.5 flex flex-col gap-2.5 border-t border-border pt-2.5">
+          <div className="mt-2.5 flex flex-col gap-2.5 pt-2.5">
+            <Separator />
             {/* An upsert gets its form-shaped summary instead of the raw
                 Input/Result every other tool shows below — AgentUpsertBody
                 already surfaces every field (name, tags, model, systemPrompt

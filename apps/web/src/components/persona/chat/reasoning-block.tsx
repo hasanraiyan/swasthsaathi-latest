@@ -3,6 +3,8 @@
 import * as React from "react";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MessageMarkdown } from "./message-markdown";
 import { ThinkingIndicator } from "./thinking-indicator";
 import type { PersonaMessage } from "@personaai/react";
@@ -53,27 +55,31 @@ function ReasoningBlock({
   if (!hasContent) return null;
 
   return (
-    <div
+    <Collapsible
+      open={open}
+      onOpenChange={setManualOpen}
       className={cn("max-w-full text-muted-foreground select-text", className)}
     >
-      <button
-        type="button"
-        onClick={() => setManualOpen(!open)}
-        aria-expanded={open}
-        className="group flex cursor-pointer items-center gap-1.5 rounded-sm py-0.5 text-xs font-medium italic opacity-80 transition-opacity select-none hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-      >
-        <span className="font-medium tracking-tight">Thought</span>
-        <CaretDownIcon
-          className={cn("size-3 transition-transform", open && "rotate-180")}
-        />
-      </button>
-
-      {open ? (
-        <div className="mt-1">
-          <MessageMarkdown muted content={reasoning.content} />
-        </div>
-      ) : null}
-    </div>
+      <CollapsibleTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            aria-expanded={open}
+            className="group h-auto gap-1.5 rounded-sm py-0.5 text-xs font-medium italic opacity-80 hover:opacity-100"
+          >
+            <span className="font-medium tracking-tight">Thought</span>
+            <CaretDownIcon
+              className={cn("size-3 transition-transform", open && "rotate-180")}
+            />
+          </Button>
+        }
+      />
+      <CollapsibleContent className="mt-1">
+        <MessageMarkdown muted content={reasoning.content} />
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
