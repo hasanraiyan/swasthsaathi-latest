@@ -37,22 +37,16 @@ function ChatApp() {
     threads,
     isLoading: threadsLoading,
     error: threadsError,
-    createThread,
     renameThread,
     deleteThread,
+    refetch: refetchThreads,
   } = useThreads(true);
-  const [threadId, setThreadId] = React.useState<string | null>(null);
+  const [threadId, setThreadId] = React.useState<string | undefined>(undefined);
 
-  // Deliberately NO auto-select on load. There used to be a rule here that
-  // grabbed threads[0] whenever nothing was selected. threads[0] is the
-  // newest thread, and the newest thread is very often an empty one left
-  // behind by a previous send or "New chat" — so every page load fired a
-  // history fetch for a thread the user never asked for and then landed on
-  // "How can I help?" even when real conversations existed. It also silently
-  // pointed the composer at an existing thread, so a stray send went into
-  // someone's old conversation instead of a new one. Opening a fresh chat is
-  // the correct landing state; `ensureThreadId` below creates a real thread
-  // on the first send, which is what the old rule was there to guarantee.
+  // Ephemeral new chat (0.8.0): threadId === undefined means no real thread
+  // yet — no POST /threads, no history fetch, instant empty UI. First
+  // sendMessage auto-mints via POST /threads inside useChat and fires
+  // onThreadCreated so we can sync the sidebar.
 
   const [runError, setRunError] = React.useState<{
     code: string;
@@ -66,6 +60,13 @@ function ChatApp() {
     agentId: AGENT_ID,
     threadId: threadId ?? undefined,
     voice,
+    onThreadCreated: React.useCallback(
+      (newId: string) => {
+        setThreadId(newId);
+        void refetchThreads();
+      },
+      [refetchThreads],
+    ),
     onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string }) => {
       if (event.type === "RUN_ERROR") {
         setRunError({
@@ -117,71 +118,22 @@ function ChatApp() {
     [chat.messages]
   );
 
-  // The user's own voice turn is the one line the SDK can lose.
-  //
-  // `useChat`'s voice→chat merge (dist/index.js:544) advances its private
-  // "already merged" pointer to `voice.transcript.length` whenever the voice
-  // state is not active — and `stop()` sets that state to "idle" synchronously.
-  // The last thing anyone does before hanging up is talk, so the final
-  // utterance routinely lands in that window and is swallowed; the agent's
-  // reply was merged earlier, mid-call, which is why only the *user's* line
-  // goes missing. `voice.partial` is the only place that utterance still
-  // exists, since `handleTranscript` never commits it to `transcript`.
-  //
-  // So mirror both sources and subtract what the chat already shows. The
-  // subtraction is exact, not fuzzy: the SDK's merge writes precisely
-  // `line.text.trim()` into the message it appends, so a trimmed match proves
-  // the line landed and a non-match proves it didn't. Deriving the echo
-  // instead of writing it into `chat.messages` is what makes this safe — it
-  // cannot double a message, cannot fight the SDK's own state, and disappears
-  // on its own the moment the real message arrives.
-  const voiceUserEcho = React.useMemo(() => {
-    const texts: string[] = [];
-    for (const line of voice.transcript) {
-      if (line.speaker !== "user") continue;
-      const text = (line.text ?? "").trim();
-      if (text && !texts.includes(text)) texts.push(text);
-    }
-    // What the user is saying right now, which has no transcript line yet.
-    const speaking =
-      voice.partial?.speaker === "user" ? (voice.partial.text ?? "").trim() : "";
-    if (speaking && !texts.includes(speaking)) texts.push(speaking);
-
-    return texts
-      .filter(
-        (text) =>
-          !chat.messages.some(
-            (m) => m.role === "user" && m.content.trim() === text
-          )
-      )
-      .map((text, i) => ({
-        id: `voice-echo-${i}`,
-        message: {
-          id: `voice-echo-${i}`,
-          role: "user" as const,
-          content: text,
-          createdAt: new Date(),
-        },
-      }));
-  }, [voice.transcript, voice.partial, chat.messages]);
-
   // What the preview sheet resolves against.
   //
-  // NOT `chat.files` alone. That map is written from exactly two places in the
-  // SDK — thread load and a live `STATE_SNAPSHOT` event — so for an agent that
-  // emits no snapshot it stays `{}` forever, and every preview landed on the
-  // empty state even for a file written seconds earlier. The transcript is the
-  // source that is always there: `write_file` args carry the whole body,
-  // `edit_file` carries the spans, `read_file` carries the result back. See
-  // lib/persona/workspace-replay.ts.
+  // Kept as replay from transcript + snapshot (lib/persona/workspace-replay.ts)
+  // for agents that emit no STATE_SNAPSHOT — 0.8.0 now guards snapshot
+  // missing fields (B2) and fixes voice merge (A1+A2), so plain chat.files
+  // would work for snapshot-emitting agents, but replay is still the most
+  // complete source and costs nothing.
   const workspace = React.useMemo(
     () => buildWorkspace(chat.messages, chat.files),
     [chat.messages, chat.files]
   );
 
+  const effectiveThreadId = chat.currentThreadId ?? threadId;
   const activeThreadTitle = React.useMemo(
-    () => threads.find((t) => t._id === threadId)?.title,
-    [threads, threadId]
+    () => threads.find((t) => t._id === effectiveThreadId)?.title,
+    [threads, effectiveThreadId]
   );
 
   // Is a thread's history still on its way? The pane has to know, because
@@ -258,12 +210,13 @@ function ChatApp() {
     [chat, threadId]
   );
 
-  const handleNewChat = React.useCallback(async () => {
-    const thread = await createThread(AGENT_ID);
-    chat.setMessages([]);
+  const handleNewChat = React.useCallback(() => {
+    chat.startNewChat();
     setRunError(null);
-    setThreadId(thread._id);
-  }, [createThread, chat]);
+    setThreadId(undefined);
+    setHistoryPending(false);
+    sawHistoryLoadingRef.current = false;
+  }, [chat]);
 
   // Deleting the open thread would otherwise leave threadId pointing at a
   // record the server no longer has. Clearing it hands off to the
@@ -272,9 +225,9 @@ function ChatApp() {
     (id: string) => {
       void deleteThread(id);
       if (id !== threadId) return;
-      chat.setMessages([]);
+      chat.startNewChat();
       setRunError(null);
-      setThreadId(null);
+      setThreadId(undefined);
       // The thread that was loading no longer exists, so nothing is coming
       // for it — leaving the flag set would strand the skeleton over the
       // empty state that should follow the delete.
@@ -282,38 +235,13 @@ function ChatApp() {
     },
     [deleteThread, threadId, chat]
   );
-
-  // Sending with no thread selected (the very first message of a fresh
-  // conversation) used to fire chat.sendMessage() with threadId: null — the
-  // reply streamed in and looked fine, but nothing was ever attached to a
-  // real, listed thread, so it vanished on reload. sendMessage's own
-  // overrideOptions.threadId accepts a Promise for exactly this case (its
-  // optimistic UI update runs immediately; it only awaits the promise right
-  // before the actual request) — lazily create the thread and hand that
-  // promise straight to sendMessage instead of pre-awaiting it ourselves.
-  const ensureThreadId = React.useCallback((): string | Promise<string> => {
-    if (threadId) return threadId;
-    return createThread(AGENT_ID).then((thread) => {
-      setThreadId(thread._id);
-      return thread._id;
-    });
-  }, [threadId, createThread]);
-
-  // Refuse to send while a history fetch is in flight. The SDK's
-  // loadThreadMessages ends with an ABSOLUTE setMessages(loaded) (not a
-  // functional update), so a fetch that started before the send resolves
-  // after it and replaces the optimistic user message + assistant
-  // placeholder with the stored history. The stream then keeps writing into
-  // a message id that is no longer in the list, and the sent message never
-  // appears. Waiting the fetch out removes the overlap entirely; the input
-  // text is untouched, so nothing the user typed is lost.
   const handleSend = React.useCallback(
     (text?: string) => {
       if (chat.isLoadingHistory) return;
       setRunError(null);
-      void chat.sendMessage(text, { threadId: ensureThreadId() });
+      void chat.sendMessage(text);
     },
-    [chat, ensureThreadId]
+    [chat]
   );
 
   const handleRetry = React.useCallback(() => {
@@ -324,9 +252,8 @@ function ChatApp() {
       return;
     }
     setRunError(null);
-    // sendMessage with explicit text re-dispatches that turn; useChat writes the optimistic user bubble again
-    void chat.sendMessage(text, { threadId: ensureThreadId() });
-  }, [chat, ensureThreadId]);
+    void chat.sendMessage(text);
+  }, [chat]);
 
   // Every `start()` opens a brand-new mic track, but `isMuted` is never reset
   // by the SDK — so a mute left over from the previous call would leave the
@@ -400,7 +327,7 @@ function ChatApp() {
     <SidebarProvider className="flex min-h-0 flex-1">
       <ThreadSidebar
         threads={threads}
-        activeThreadId={threadId}
+        activeThreadId={effectiveThreadId ?? null}
         isLoading={threadsLoading}
         error={threadsError}
         onSelectThread={switchToThread}
@@ -419,9 +346,9 @@ function ChatApp() {
             moment real messages land they win immediately — the flag can lag a
             render behind the fetch and must never paint over delivered
             content. */}
-        {historyPending && grouped.length === 0 && voiceUserEcho.length === 0 ? (
+        {historyPending && grouped.length === 0 ? (
           <ChatHistorySkeleton />
-        ) : grouped.length === 0 && voiceUserEcho.length === 0 ? (
+        ) : grouped.length === 0 ? (
           <ChatEmptyState title="How can I help?">
             <HealthSummaryCard />
           </ChatEmptyState>
@@ -443,15 +370,6 @@ function ChatApp() {
                   onOpenWorkspaceFile={setOpenFilePath}
                   onSendMessage={(text) => handleSend(text)}
                 />
-              </ChatScrollerItem>
-            ))}
-
-            {/* Voice utterances the SDK's merge never committed — see
-                voiceUserEcho above. They render as ordinary user turns so a
-                salvaged line is indistinguishable from a merged one. */}
-            {voiceUserEcho.map(({ id, message }) => (
-              <ChatScrollerItem key={id} messageId={id}>
-                <ChatMessage message={message} />
               </ChatScrollerItem>
             ))}
           </ChatScroller>
