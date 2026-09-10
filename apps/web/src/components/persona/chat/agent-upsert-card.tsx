@@ -13,7 +13,8 @@ import {
 } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { MessageMarkdown } from "./message-markdown";
-import type { ChatToolCall } from "./types";
+import { getToolCallStatus } from "./tool-cards/utils";
+import type { PersonaToolCall } from "@personaai/react";
 
 /**
  * Body content rendered *inside* ToolCallCard, above the raw Input/Result,
@@ -92,13 +93,14 @@ export interface AgentUpsertSummary {
   systemPrompt: string;
 }
 
-export function summarizeUpsert(toolCall: ChatToolCall): AgentUpsertSummary {
+export function summarizeUpsert(toolCall: PersonaToolCall): AgentUpsertSummary {
   const args = parseJson(toolCall.args);
   const result = parseJson(toolCall.result);
 
-  const isPending = toolCall.status === "running";
+  const status = getToolCallStatus(toolCall);
+  const isPending = status === "running";
   const resultStatus = str(result?.status);
-  const isError = toolCall.status === "error" || resultStatus === "error";
+  const isError = status === "error" || resultStatus === "error";
   const succeeded = !isPending && !isError && resultStatus === "success";
 
   const argsAgentId = idOf(args?.agentId);

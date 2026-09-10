@@ -4,7 +4,8 @@ import * as React from "react";
 import { ItemGroup } from "@/components/ui/item";
 import { ToolCallCard } from "./tool-call-card";
 import { McpAppRenderer } from "./mcp-app-renderer";
-import type { ChatToolCall, ChatTodo } from "./types";
+import { getToolCallStatus } from "./tool-cards/utils";
+import type { PersonaToolCall, PersonaTodo } from "@personaai/react";
 
 function ToolCallTrace({
   toolCalls,
@@ -14,8 +15,8 @@ function ToolCallTrace({
   onOpenWorkspaceFile,
   onSendMessage,
 }: {
-  toolCalls: ChatToolCall[];
-  todos?: ChatTodo[];
+  toolCalls: PersonaToolCall[];
+  todos?: PersonaTodo[];
   projectId?: string;
   onOpenSubagent?: (toolCallId: string) => void;
   /** present_file's card calls this when the user clicks its Open button — no longer an auto-fired side effect. */
@@ -27,16 +28,16 @@ function ToolCallTrace({
   // Group consecutive regular tool calls together in ItemGroup,
   // and render MCP App tool calls as prominent standalone blocks.
   const elements: React.ReactNode[] = [];
-  let currentGroup: ChatToolCall[] = [];
+  let currentGroup: PersonaToolCall[] = [];
 
   const flushGroup = () => {
     if (currentGroup.length > 0) {
-      const groupKey = currentGroup[0].id;
+      const groupKey = currentGroup[0].toolCallId;
       elements.push(
         <ItemGroup key={`group-${groupKey}`} className="gap-1.5!">
           {currentGroup.map((tc) => (
             <ToolCallCard
-              key={tc.id}
+              key={tc.toolCallId}
               toolCall={tc}
               todos={todos}
               onOpenSubagent={onOpenSubagent}
@@ -50,17 +51,16 @@ function ToolCallTrace({
   };
 
   for (const tc of toolCalls) {
-    if (tc.mcpApp?.resourceUri || tc.mcpApp?.initialHtml) {
+    if (tc.mcpApp?.resourceUri) {
       flushGroup();
       elements.push(
-        <div key={`mcp-app-${tc.id}`} className="w-full my-1.5">
+        <div key={`mcp-app-${tc.toolCallId}`} className="w-full my-1.5">
           <McpAppRenderer
             projectId={projectId || ""}
             mcpId={tc.mcpApp.mcpId || ""}
             resourceUri={tc.mcpApp.resourceUri || ""}
-            initialHtml={tc.mcpApp.initialHtml}
-            toolName={tc.name}
-            tool={tc}
+            toolName={tc.toolName}
+            tool={{ args: tc.args, result: tc.result, status: getToolCallStatus(tc) }}
             onSendMessage={onSendMessage}
           />
         </div>

@@ -1,3 +1,15 @@
+import type { PersonaToolCall } from "@personaai/react";
+
+// PersonaToolCall carries no `status` field — running/done/error is derived
+// from whether `result`/`isError` have arrived yet.
+export function getToolCallStatus(
+  toolCall: Pick<PersonaToolCall, "result" | "isError">
+): "running" | "done" | "error" {
+  if (toolCall.isError) return "error";
+  if (toolCall.result !== undefined) return "done";
+  return "running";
+}
+
 export function tryParseJson(value: string | undefined | null): unknown {
   if (!value || typeof value !== "string") return null;
   try {

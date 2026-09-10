@@ -2,8 +2,8 @@
 
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
-import { getReadFileToolDetails, CODE_EXTENSIONS, fileExtOf } from "./utils";
-import type { ChatToolCall } from "../types";
+import { getReadFileToolDetails, CODE_EXTENSIONS, fileExtOf, getToolCallStatus } from "./utils";
+import type { PersonaToolCall } from "@personaai/react";
 
 // Split file content into display lines + line numbers, stripping any
 // "   1  content" prefixes the tool may have added.
@@ -50,7 +50,7 @@ function processLines(content: string, lineOffset: number) {
   return { lines: rawLines, lineNumbers: numbers };
 }
 
-export function ReadFileCard({ toolCall }: { toolCall: ChatToolCall }) {
+export function ReadFileCard({ toolCall }: { toolCall: PersonaToolCall }) {
   const details = getReadFileToolDetails(toolCall.args, toolCall.result);
   const content = details?.content ?? "";
   const otherArgs = details?.otherArgs ?? {};
@@ -70,7 +70,7 @@ export function ReadFileCard({ toolCall }: { toolCall: ChatToolCall }) {
   const fileName = filePath.split("/").pop() || filePath;
   const isCode = CODE_EXTENSIONS.includes(fileExtOf(fileName));
   const FileIcon = isCode ? FileCodeIcon : FileTextIcon;
-  const done = toolCall.status !== "running";
+  const done = getToolCallStatus(toolCall) !== "running";
 
   return (
     <div className="flex flex-col rounded-none border border-border bg-card overflow-hidden">

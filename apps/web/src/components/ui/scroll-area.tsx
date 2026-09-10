@@ -7,8 +7,14 @@ import { cn } from "cn"
 function ScrollArea({
   className,
   children,
+  orientation = "vertical",
   ...props
-}: ScrollAreaPrimitive.Root.Props) {
+}: ScrollAreaPrimitive.Root.Props & {
+  /** Which axis gets a visible scrollbar. Base UI's Root has no such prop
+   * itself — it auto-detects overflow per axis — so this only decides which
+   * ScrollBar(s) render. */
+  orientation?: "vertical" | "horizontal" | "both"
+}) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -21,7 +27,12 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
+      {(orientation === "vertical" || orientation === "both") && (
+        <ScrollBar orientation="vertical" />
+      )}
+      {(orientation === "horizontal" || orientation === "both") && (
+        <ScrollBar orientation="horizontal" />
+      )}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )

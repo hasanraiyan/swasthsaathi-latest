@@ -4,7 +4,7 @@ import * as React from "react";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { MessageMarkdown } from "./message-markdown";
-import type { ChatReasoning } from "./types";
+import type { PersonaMessage } from "@personaai/react";
 
 function formatElapsed(ms: number): string {
   const seconds = Math.max(0, Math.round(ms / 1000));
@@ -25,7 +25,7 @@ function ReasoningBlock({
   reasoning,
   className,
 }: {
-  reasoning: ChatReasoning;
+  reasoning: PersonaMessage;
   className?: string;
 }) {
   const isStreaming = !!reasoning.isStreaming;
@@ -35,8 +35,8 @@ function ReasoningBlock({
   const [manualOpen, setManualOpen] = React.useState<boolean | null>(null);
   const open = manualOpen ?? isStreaming;
 
-  // Live "Thought · Ns" label while a block is still streaming (no duration
-  // stamped yet) — the same ticker the old ReasoningBubble kept running.
+  // Live "Thought · Ns" label while a block is still streaming — the same
+  // ticker the old ReasoningBubble kept running.
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
     if (!isStreaming) return;
@@ -44,18 +44,14 @@ function ReasoningBlock({
     return () => window.clearInterval(id);
   }, [isStreaming]);
 
-  const startedAt =
-    typeof reasoning.startedAt === "number" ? reasoning.startedAt : now;
+  // PersonaMessage only stamps `createdAt` (when the phase started) — there's
+  // no end-of-phase duration field, so a finished block can no longer show
+  // "Thought for Ns", only "Thought".
+  const startedAt = reasoning.createdAt.getTime();
   const liveElapsed = formatElapsed(Math.max(0, now - startedAt));
-  const doneElapsed =
-    typeof reasoning.durationMs === "number"
-      ? formatElapsed(reasoning.durationMs)
-      : null;
 
   const hasContent = !!reasoning.content?.trim();
-  const headerLabel = hasContent
-    ? `Thought${doneElapsed ? ` for ${doneElapsed}` : ""}`
-    : "Thinking";
+  const headerLabel = hasContent ? "Thought" : "Thinking";
 
   return (
     <div

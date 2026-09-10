@@ -4,7 +4,7 @@ import * as React from "react";
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { parseToolArgs, CODE_EXTENSIONS, fileExtOf } from "./utils";
-import type { ChatToolCall } from "../types";
+import type { PersonaToolCall } from "@personaai/react";
 
 type DiffRow = { type: "add" | "remove" | "context"; line: string };
 
@@ -141,9 +141,9 @@ export function DiffView({
 // Line counts for the card row's "+19 -6" diffstat. Returns null when the
 // args aren't parseable (yet) — the caller falls back to the generic panel
 // instead of rendering an empty diff.
-export function computeFileDiffStats(toolCall: ChatToolCall): { added: number; removed: number } | null {
+export function computeFileDiffStats(toolCall: PersonaToolCall): { added: number; removed: number } | null {
   const args = parseToolArgs(toolCall.args) || {};
-  const name = (toolCall.name || "").toLowerCase();
+  const name = (toolCall.toolName || "").toLowerCase();
 
   if (name === "write_file") {
     if (typeof args.content !== "string") return null;
@@ -168,9 +168,9 @@ export function computeFileDiffStats(toolCall: ChatToolCall): { added: number; r
 // Reads a write_file / edit_file tool's arguments and renders the DiffView.
 // write_file has no prior content available client-side, so the entire body
 // renders as additions; edit_file diffs old_string against new_string.
-export function FileDiffCard({ toolCall }: { toolCall: ChatToolCall }) {
+export function FileDiffCard({ toolCall }: { toolCall: PersonaToolCall }) {
   const args = parseToolArgs(toolCall.args) || {};
-  const nameLower = (toolCall.name || "").toLowerCase();
+  const nameLower = (toolCall.toolName || "").toLowerCase();
   const filePath = (args.file_path as string) || (args.filePath as string) || (args.path as string) || "";
 
   if (nameLower === "edit_file") {

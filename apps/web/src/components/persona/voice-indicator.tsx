@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Orb, type OrbState } from "orb-ui";
 import { cn } from "@/lib/utils";
-import type { VoiceCallState } from "./chat/types";
+import type { PersonaVoiceState as VoiceCallState } from "@personaai/react";
 
 // Orb's own state union has no "ended" — a finished call reads as idle.
 function toOrbState(state: VoiceCallState): OrbState {

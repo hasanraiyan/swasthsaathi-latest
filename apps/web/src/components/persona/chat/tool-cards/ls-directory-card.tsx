@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { parseToolArgs, parseLsResults, buildLsTree, type LsTreeNode } from "./utils";
-import type { ChatToolCall } from "../types";
+import { parseToolArgs, parseLsResults, buildLsTree, getToolCallStatus, type LsTreeNode } from "./utils";
+import type { PersonaToolCall } from "@personaai/react";
 
 // Same file-vs-code icon split file-explorer-editor.tsx uses, so a listed
 // entry reads the same way whether you're looking at it in the Explorer
@@ -81,12 +81,12 @@ function TreeRow({ node, depth, collapsed, onToggle }: {
 // `ls` entry can carry slashes ("/memories/agent/") the flat listing never
 // groups on its own — a real nested tree underneath where every directory
 // is its own independently expandable node.
-export function LsDirectoryCard({ toolCall }: { toolCall: ChatToolCall }) {
+export function LsDirectoryCard({ toolCall }: { toolCall: PersonaToolCall }) {
   const args = parseToolArgs(toolCall.args) || {};
   const path = (args.path as string) || (args.dir as string) || (args.directory as string) || "/";
   const items = parseLsResults(toolCall.result);
   const tree = React.useMemo(() => buildLsTree(items), [items]);
-  const done = toolCall.status !== "running";
+  const done = getToolCallStatus(toolCall) !== "running";
   // Starts expanded — this card only renders once the outer tool-call card
   // is already open, so a second click just to see the listing would be
   // redundant. The toggle exists for re-collapsing a long listing.

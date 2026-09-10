@@ -1,4 +1,3 @@
-export * from "./types";
 export { ChatScroller, ChatScrollerItem } from "./chat-scroller";
 export { ChatMessage } from "./chat-message";
 export { MessageMarkdown } from "./message-markdown";

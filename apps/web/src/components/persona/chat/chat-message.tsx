@@ -8,24 +8,30 @@ import { ToolCallTrace } from "./tool-call-trace";
 import { ReasoningBlock } from "./reasoning-block";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { CopyButton } from "./copy-button";
-import type { ChatMessageData, ChatTodo } from "./types";
+import type { PersonaMessage, PersonaTodo } from "@personaai/react";
 
 /**
  * Role-based dispatch: the user's own turn is bubbled (align="end"),
  * matching Claude's own layout where only the human side gets bubble
  * chrome; the assistant's turn renders as plain content plus its tool-call
  * trace, no bubble — same split NotebookChat.js's ChatMessage uses.
+ *
+ * `useChat()` streams reasoning as its own `role: "reasoning"` messages
+ * rather than embedding them on the assistant message, so the caller passes
+ * the reasoning messages that precede this one (matched by `seq`) separately.
  */
 function ChatMessage({
   message,
+  reasoning,
   todos,
   projectId,
   onOpenSubagent,
   onOpenWorkspaceFile,
   onSendMessage,
 }: {
-  message: ChatMessageData;
-  todos?: ChatTodo[];
+  message: PersonaMessage;
+  reasoning?: PersonaMessage[];
+  todos?: PersonaTodo[];
   projectId?: string;
   onOpenSubagent?: (toolCallId: string) => void;
   onOpenWorkspaceFile?: (path: string) => void;
@@ -44,20 +50,20 @@ function ChatMessage({
   }
 
   const hasToolCalls = (message.toolCalls?.length ?? 0) > 0;
-  const reasoning = message.reasoning ?? [];
+  const reasoningMessages = reasoning ?? [];
   // A live reasoning block auto-opens with its own animated header, so the
   // standalone "Thinking" gap indicator below would read as a duplicate —
   // show it only when nothing reasoning-related is already indicating.
-  const hasLiveReasoning = reasoning.some((r) => r.isStreaming);
+  const hasLiveReasoning = reasoningMessages.some((r) => r.isStreaming);
   const isEmptyStreaming =
     !!message.isStreaming && !message.content?.trim() && !hasToolCalls;
 
   return (
     <Message align="start" className="group/chat-message">
       <MessageContent>
-        {reasoning.length > 0 && (
+        {reasoningMessages.length > 0 && (
           <div className="mb-1 flex flex-col gap-2">
-            {reasoning.map((r) => (
+            {reasoningMessages.map((r) => (
               <ReasoningBlock key={r.id} reasoning={r} />
             ))}
           </div>

@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { FileCodeIcon, FileTextIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { parseToolArgs, CODE_EXTENSIONS, fileExtOf } from "./utils";
-import type { ChatToolCall } from "../types";
+import { parseToolArgs, CODE_EXTENSIONS, fileExtOf, getToolCallStatus } from "./utils";
+import type { PersonaToolCall } from "@personaai/react";
 
 export interface GrepMatch {
   file: string;
@@ -86,12 +86,12 @@ function highlightMatch(text: string, query: string) {
   }
 }
 
-export function GrepResultsView({ toolCall }: { toolCall: ChatToolCall }) {
+export function GrepResultsView({ toolCall }: { toolCall: PersonaToolCall }) {
   const parsedInput = parseToolArgs(toolCall.args) || {};
   const query = (parsedInput.pattern as string) || (parsedInput.Query as string) || (parsedInput.query as string) || "";
   const path = (parsedInput.path as string) || (parsedInput.SearchPath as string) || (parsedInput.searchPath as string) || "/";
   const results = parseGrepResults(toolCall.result);
-  const done = toolCall.status !== "running";
+  const done = getToolCallStatus(toolCall) !== "running";
 
   const fileGroups: Record<string, GrepMatch[]> = {};
   for (const match of results) {

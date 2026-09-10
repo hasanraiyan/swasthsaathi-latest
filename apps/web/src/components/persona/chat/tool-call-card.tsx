@@ -32,8 +32,9 @@ import {
   isFileEditTool,
   isGrepTool,
   parseToolArgs,
+  getToolCallStatus,
 } from "./tool-cards/utils";
-import type { ChatToolCall, ChatTodo } from "./types";
+import type { PersonaToolCall, PersonaTodo } from "@personaai/react";
 
 const TOOL_LABELS: Record<string, string> = {
   write_todos: "Planning next steps",
@@ -52,7 +53,7 @@ function humanizeToolName(name: string): string {
 }
 
 
-function parseTodosFromArgs(args: string | undefined): ChatTodo[] | undefined {
+function parseTodosFromArgs(args: string | undefined): PersonaTodo[] | undefined {
   if (!args) return undefined;
   try {
     const parsed = JSON.parse(args);
@@ -78,8 +79,8 @@ function ToolCallCard({
   onOpenFile,
   defaultOpen,
 }: {
-  toolCall: ChatToolCall;
-  todos?: ChatTodo[];
+  toolCall: PersonaToolCall;
+  todos?: PersonaTodo[];
   onOpenSubagent?: (toolCallId: string) => void;
   /** present_file's Open button — no card for any other tool uses this. */
   onOpenFile?: (path: string) => void;
@@ -87,23 +88,24 @@ function ToolCallCard({
    * open so the pending call's args are visible without an extra click). */
   defaultOpen?: boolean;
 }) {
-  const isTask = toolCall.name === "task";
-  const isTodos = toolCall.name === "write_todos";
-  const isUpsert = toolCall.name === "upsert_agent";
-  const isLs = isLsTool(toolCall.name);
-  const isReadFile = isReadFileTool(toolCall.name);
-  const isGrep = isGrepTool(toolCall.name);
-  const isPending = toolCall.status === "running";
+  const status = getToolCallStatus(toolCall);
+  const isTask = toolCall.toolName === "task";
+  const isTodos = toolCall.toolName === "write_todos";
+  const isUpsert = toolCall.toolName === "upsert_agent";
+  const isLs = isLsTool(toolCall.toolName);
+  const isReadFile = isReadFileTool(toolCall.toolName);
+  const isGrep = isGrepTool(toolCall.toolName);
+  const isPending = status === "running";
   const upsert: AgentUpsertSummary | null = isUpsert ? summarizeUpsert(toolCall) : null;
   // A failed tool run or an envelope that reports status:"error" both count as
   // error; an upsert that returns status:"success" reads as a success.
-  const isError = upsert ? upsert.isError : toolCall.status === "error";
+  const isError = upsert ? upsert.isError : status === "error";
   const upsertSucceeded = !!upsert?.succeeded;
-  const label = upsert ? upsert.title : humanizeToolName(toolCall.name);
+  const label = upsert ? upsert.title : humanizeToolName(toolCall.toolName);
   // write_file/edit_file get a diffstat badge and a DiffView body instead of
   // raw args/result JSON — but only once the args have actually parsed into
   // a real diff, otherwise fall through to the generic Input/Result panel.
-  const isFileDiff = (isFileWriteTool(toolCall.name) || isFileEditTool(toolCall.name)) && !isError;
+  const isFileDiff = (isFileWriteTool(toolCall.toolName) || isFileEditTool(toolCall.toolName)) && !isError;
   const diffStats = isFileDiff ? computeFileDiffStats(toolCall) : null;
   // This call's own args win — they reflect the plan as of this specific
   // write_todos call; the externally-passed `todos` (the turn's latest
@@ -156,7 +158,7 @@ function ToolCallCard({
   // explicit Open button that hands the path to the caller. Never
   // auto-opens: the whole point of the button is that opening is the user's
   // choice, not a side effect of the agent finishing the call.
-  if (toolCall.name === "present_file") {
+  if (toolCall.toolName === "present_file") {
     const presentArgs = parseToolArgs(toolCall.args) as
       | { filePath?: string; title?: string; description?: string }
       | null;
@@ -273,7 +275,7 @@ function ToolCallCard({
                 className="self-start"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenSubagent(toolCall.id);
+                  onOpenSubagent(toolCall.toolCallId);
                 }}
               >
                 <RobotIcon /> View subagent

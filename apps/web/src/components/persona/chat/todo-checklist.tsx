@@ -3,9 +3,9 @@
 import * as React from "react";
 import { CheckCircleIcon, ClockIcon, CircleIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import type { ChatTodo } from "./types";
+import type { PersonaTodo } from "@personaai/react";
 
-function TodoStatusIcon({ status }: { status: ChatTodo["status"] }) {
+function TodoStatusIcon({ status }: { status: PersonaTodo["status"] }) {
   if (status === "completed") {
     return (
       <CheckCircleIcon weight="fill" className="size-[15px] shrink-0 text-primary" />
@@ -24,7 +24,7 @@ function TodoChecklist({
   todos,
   className,
 }: {
-  todos: ChatTodo[];
+  todos: PersonaTodo[];
   className?: string;
 }) {
   if (!todos?.length) return null;

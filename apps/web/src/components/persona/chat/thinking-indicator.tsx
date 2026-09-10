@@ -3,9 +3,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Claude Code's own spinner — cycles forward through this sequence then
-// back, never a generic spin icon. Exact frame set from the reference
-// (NotebookChat.js's AssistantThinking).
 const CLAUDE_SPINNER_BASE = ["·", "✢", "*", "✶", "✻", "✽"];
 const CLAUDE_SPINNER_FRAMES = [
   ...CLAUDE_SPINNER_BASE,
