@@ -28,3 +28,5 @@ pnpm-debug.log*
 # generated
 apps/api/openapi.json
 packages/sdk/src/generated
+
+tsconfig.build.tsbuildinfo
