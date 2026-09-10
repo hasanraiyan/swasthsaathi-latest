@@ -8,7 +8,10 @@ import { MongooseModule } from '@nestjs/mongoose';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.getOrThrow<string>('MONGODB_URI'),
+        // Falls back to a placeholder URI so the module graph (and anything
+        // that does MongooseModule.forFeature) still resolves during
+        // `generate:openapi`, which boots the app with no real Mongo needed.
+        uri: config.get<string>('MONGODB_URI') ?? 'mongodb://127.0.0.1:27017/swasthsaathi',
       }),
     }),
   ],

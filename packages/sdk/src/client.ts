@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch';
-import type { paths } from './generated/types.js';
+import type { paths } from './generated/types';
 
 export function createSdk(baseUrl: string) {
   return createClient<paths>({ baseUrl });

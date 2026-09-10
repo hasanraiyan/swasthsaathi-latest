@@ -1,3 +1,3 @@
-export { createSdk } from './client.js';
-export type { Sdk } from './client.js';
-export type { components, paths } from './generated/types.js';
+export { createSdk } from './client';
+export type { Sdk } from './client';
+export type { components, paths } from './generated/types';

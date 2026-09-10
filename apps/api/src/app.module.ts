@@ -4,17 +4,19 @@ import { PersonaModule } from '@personaai/adapters/nestjs';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { DatabaseModule } from './database/database.module.js';
+import { HealthProfileModule } from './health-profile/health-profile.module.js';
 import { resolveUserFrom } from './persona/resolve-user.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
+    HealthProfileModule,
     // SKIP_DB lets `generate:openapi` build the Swagger doc in environments with no
-    // real Mongo/Persona credentials configured (a fresh checkout, CI). PersonaModule
-    // uses getOrThrow, so it needs the same gate even though forRootAsync itself is
-    // confirmed non-blocking (verified: a full boot with real Mongo+Persona creds logs
-    // "PersonaModule dependencies initialized" immediately, no hang).
-    ...(process.env.SKIP_DB === 'true' ? [] : [DatabaseModule]),
+    // real Persona credentials configured (a fresh checkout, CI). PersonaModule uses
+    // getOrThrow for those, so it needs this gate; it isn't part of the typed SDK
+    // surface (its routes are mounted by the Persona library itself), so skipping it
+    // doesn't affect the generated spec.
     ...(process.env.SKIP_DB === 'true'
       ? []
       : [
