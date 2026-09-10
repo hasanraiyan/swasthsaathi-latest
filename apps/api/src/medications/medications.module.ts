@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HealthConditionsModule } from '../health-conditions/health-conditions.module.js';
+import { HealthEventsModule } from '../health-events/health-events.module.js';
 import { MedicationsController } from './medications.controller.js';
 import { MedicationsService } from './medications.service.js';
 import { Medication, MedicationSchema } from './schemas/medication.schema.js';
@@ -9,6 +10,7 @@ import { Medication, MedicationSchema } from './schemas/medication.schema.js';
   imports: [
     MongooseModule.forFeature([{ name: Medication.name, schema: MedicationSchema }]),
     HealthConditionsModule,
+    HealthEventsModule,
   ],
   controllers: [MedicationsController],
   providers: [MedicationsService],

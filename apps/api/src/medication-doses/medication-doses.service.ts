@@ -1,9 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
+import { HealthEventsService } from '../health-events/health-events.service.js';
 import { MedicationsService } from '../medications/medications.service.js';
 import type { RecordDoseDto } from './dto/record-dose.dto.js';
 import { MedicationDose, type MedicationDoseDocument } from './schemas/medication-dose.schema.js';
+
+const DOSE_EVENT = {
+  taken: 'dose_taken',
+  skipped: 'dose_skipped',
+  missed: 'dose_missed',
+} as const;
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -29,6 +36,7 @@ export class MedicationDosesService {
   constructor(
     @InjectModel(MedicationDose.name) private readonly model: Model<MedicationDoseDocument>,
     private readonly medicationsService: MedicationsService,
+    private readonly healthEventsService: HealthEventsService,
   ) {}
 
   async findTodaySchedule(userId: string) {
@@ -67,16 +75,31 @@ export class MedicationDosesService {
   }
 
   async recordDose(userId: string, dto: RecordDoseDto) {
-    const owned = await this.medicationsService.existsForUser(userId, dto.medicationId);
-    if (!owned) throw new BadRequestException('medicationId does not refer to one of your medications');
+    const medication = await this.medicationsService.findOneForUser(userId, dto.medicationId);
+    if (!medication) throw new BadRequestException('medicationId does not refer to one of your medications');
 
-    return this.model
+    const scheduledFor = new Date(dto.scheduledFor);
+    const existing = await this.model.findOne({ userId, medicationId: dto.medicationId, scheduledFor });
+    const changed = !existing || existing.status !== dto.status;
+
+    const dose = await this.model
       .findOneAndUpdate(
-        { userId, medicationId: dto.medicationId, scheduledFor: new Date(dto.scheduledFor) },
+        { userId, medicationId: dto.medicationId, scheduledFor },
         { $set: { status: dto.status } },
         { new: true, upsert: true, setDefaultsOnInsert: true },
       )
       .lean();
+
+    if (changed) {
+      await this.healthEventsService.log(
+        userId,
+        DOSE_EVENT[dto.status],
+        `${medication.name} — ${dto.status}`,
+        dto.medicationId,
+      );
+    }
+
+    return dose;
   }
 
   async findHistoryForUser(userId: string, days: number) {

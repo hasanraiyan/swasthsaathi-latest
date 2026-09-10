@@ -2,19 +2,31 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { HealthConditionsService } from '../health-conditions/health-conditions.service.js';
+import { HealthEventsService } from '../health-events/health-events.service.js';
 import type { CreateMedicationDto } from './dto/create-medication.dto.js';
 import type { UpdateMedicationDto } from './dto/update-medication.dto.js';
 import { Medication, type MedicationDocument } from './schemas/medication.schema.js';
+
+const STATUS_EVENT = {
+  paused: 'medication_paused',
+  active: 'medication_resumed',
+  stopped: 'medication_stopped',
+} as const;
 
 @Injectable()
 export class MedicationsService {
   constructor(
     @InjectModel(Medication.name) private readonly model: Model<MedicationDocument>,
     private readonly healthConditionsService: HealthConditionsService,
+    private readonly healthEventsService: HealthEventsService,
   ) {}
 
   findAllForUser(userId: string) {
     return this.model.find({ userId }).sort({ status: 1, startDate: -1 }).lean();
+  }
+
+  findOneForUser(userId: string, id: string) {
+    return this.model.findOne({ _id: id, userId }).lean();
   }
 
   // Active medications whose start/end range covers `date` — the set a
@@ -43,7 +55,7 @@ export class MedicationsService {
 
   async create(userId: string, dto: CreateMedicationDto) {
     await this.assertConditionOwnership(userId, dto.conditionId);
-    return this.model.create({
+    const created = await this.model.create({
       userId,
       name: dto.name,
       dosage: dto.dosage,
@@ -54,6 +66,8 @@ export class MedicationsService {
       instructions: dto.instructions,
       conditionId: dto.conditionId,
     });
+    await this.healthEventsService.log(userId, 'medication_started', `${created.name} started`, String(created._id));
+    return created;
   }
 
   async update(userId: string, id: string, dto: UpdateMedicationDto) {
@@ -70,7 +84,13 @@ export class MedicationsService {
     if (dto.endDate !== undefined) existing.endDate = new Date(dto.endDate);
     if (dto.instructions !== undefined) existing.instructions = dto.instructions;
     if (dto.conditionId !== undefined) existing.conditionId = dto.conditionId;
-    if (dto.status !== undefined) existing.status = dto.status;
+
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      existing.status = dto.status;
+      const eventType = STATUS_EVENT[dto.status];
+      const verb = dto.status === 'active' ? 'resumed' : dto.status;
+      await this.healthEventsService.log(userId, eventType, `${existing.name} ${verb}`, String(existing._id));
+    }
 
     await existing.save();
     return existing.toObject();

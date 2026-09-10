@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
+import { HealthEventsService } from '../health-events/health-events.service.js';
 import type { CreateHealthMeasurementDto } from './dto/create-health-measurement.dto.js';
 import type { UpdateHealthMeasurementDto } from './dto/update-health-measurement.dto.js';
 import {
@@ -12,10 +13,21 @@ import {
 
 const MAX_RESULTS = 500;
 
+const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
+  weight: 'Weight',
+  blood_pressure: 'Blood pressure',
+  blood_glucose: 'Blood glucose',
+  heart_rate: 'Heart rate',
+  temperature: 'Temperature',
+  oxygen_level: 'Oxygen level',
+  other: 'Measurement',
+};
+
 @Injectable()
 export class HealthMeasurementsService {
   constructor(
     @InjectModel(HealthMeasurement.name) private readonly model: Model<HealthMeasurementDocument>,
+    private readonly healthEventsService: HealthEventsService,
   ) {}
 
   findForUser(userId: string, type?: MeasurementType) {
@@ -26,7 +38,7 @@ export class HealthMeasurementsService {
       .lean();
   }
 
-  create(userId: string, dto: CreateHealthMeasurementDto) {
+  async create(userId: string, dto: CreateHealthMeasurementDto) {
     const unit = this.resolveUnit(dto.type, dto.unit);
     if (dto.type === 'other' && !dto.label) {
       throw new BadRequestException('label is required when type is "other"');
@@ -35,7 +47,7 @@ export class HealthMeasurementsService {
       throw new BadRequestException('secondaryValue (diastolic) is required when type is "blood_pressure"');
     }
 
-    return this.model.create({
+    const created = await this.model.create({
       userId,
       type: dto.type,
       label: dto.type === 'other' ? dto.label : undefined,
@@ -45,6 +57,18 @@ export class HealthMeasurementsService {
       recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : new Date(),
       notes: dto.notes,
     });
+
+    const name = created.type === 'other' ? created.label : MEASUREMENT_LABELS[created.type];
+    const displayValue =
+      created.type === 'blood_pressure' ? `${created.value}/${created.secondaryValue}` : `${created.value}`;
+    await this.healthEventsService.log(
+      userId,
+      'measurement_recorded',
+      `${name} recorded: ${displayValue} ${created.unit}`,
+      String(created._id),
+    );
+
+    return created;
   }
 
   private resolveUnit(type: MeasurementType, providedUnit: string | undefined): string {

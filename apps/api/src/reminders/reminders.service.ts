@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
+import { HealthEventsService } from '../health-events/health-events.service.js';
 import type { CreateReminderDto } from './dto/create-reminder.dto.js';
 import type { UpdateReminderDto } from './dto/update-reminder.dto.js';
 import { Reminder, type ReminderDocument, type ReminderRecurrence } from './schemas/reminder.schema.js';
@@ -17,6 +18,7 @@ function nextOccurrence(from: Date, recurrence: ReminderRecurrence): Date {
 export class RemindersService {
   constructor(
     @InjectModel(Reminder.name) private readonly model: Model<ReminderDocument>,
+    private readonly healthEventsService: HealthEventsService,
   ) {}
 
   findAllForUser(userId: string) {
@@ -60,6 +62,7 @@ export class RemindersService {
       existing.scheduledFor = nextOccurrence(existing.scheduledFor, existing.recurrence);
     }
     await existing.save();
+    await this.healthEventsService.log(userId, 'reminder_completed', `${existing.title} completed`, String(existing._id));
     return existing.toObject();
   }
 
