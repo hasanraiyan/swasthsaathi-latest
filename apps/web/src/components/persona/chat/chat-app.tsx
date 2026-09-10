@@ -67,7 +67,7 @@ function ChatApp() {
       },
       [refetchThreads],
     ),
-    onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string }) => {
+    onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string; title?: string }) => {
       if (event.type === "RUN_ERROR") {
         setRunError({
           code: event.code ?? "INTERNAL_ERROR",
@@ -76,7 +76,10 @@ function ChatApp() {
           providerName: event.providerName,
         });
       }
-    }, []),
+      if (event.type === "title" && typeof event.title === "string" && event.title.trim()) {
+        void refetchThreads();
+      }
+    }, [refetchThreads]),
     onError: React.useCallback((err: Error) => {
       // Fallback for non-stream errors that surface via useChat.error — RUN_ERROR is handled via onEvent above.
       // We still surface it here so the alert shows even if event is missed.
