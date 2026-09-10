@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PersonaProvider } from "@/components/providers/persona-provider";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            <PersonaProvider>{children}</PersonaProvider>
+          </TooltipProvider>
         </ClerkProvider>
       </body>
     </html>

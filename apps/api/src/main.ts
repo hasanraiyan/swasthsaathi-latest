@@ -11,7 +11,10 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true }),
   );
 
-  app.enableCors();
+  app.enableCors({
+    origin: process.env.WEB_APP_URL ?? 'http://localhost:3002',
+    credentials: true,
+  });
   app.use(clerkMiddleware());
 
   const config = new DocumentBuilder()
