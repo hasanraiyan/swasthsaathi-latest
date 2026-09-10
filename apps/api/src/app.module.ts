@@ -4,6 +4,7 @@ import { PersonaModule } from '@personaai/adapters/nestjs';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { DatabaseModule } from './database/database.module.js';
+import { HealthConditionsModule } from './health-conditions/health-conditions.module.js';
 import { HealthProfileModule } from './health-profile/health-profile.module.js';
 import { resolveUserFrom } from './persona/resolve-user.js';
 
@@ -12,6 +13,7 @@ import { resolveUserFrom } from './persona/resolve-user.js';
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     HealthProfileModule,
+    HealthConditionsModule,
     // SKIP_DB lets `generate:openapi` build the Swagger doc in environments with no
     // real Persona credentials configured (a fresh checkout, CI). PersonaModule uses
     // getOrThrow for those, so it needs this gate; it isn't part of the typed SDK
