@@ -53,8 +53,36 @@ function ChatApp() {
   // the correct landing state; `ensureThreadId` below creates a real thread
   // on the first send, which is what the old rule was there to guarantee.
 
+  const [runError, setRunError] = React.useState<{
+    code: string;
+    message: string;
+    retryable?: boolean;
+    providerName?: string;
+  } | null>(null);
+
   const voice = useVoice({ agentId: AGENT_ID, threadId: threadId ?? undefined });
-  const chat = useChat({ agentId: AGENT_ID, threadId: threadId ?? undefined, voice });
+  const chat = useChat({
+    agentId: AGENT_ID,
+    threadId: threadId ?? undefined,
+    voice,
+    onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string }) => {
+      if (event.type === "RUN_ERROR") {
+        setRunError({
+          code: event.code ?? "INTERNAL_ERROR",
+          message: event.message ?? "Something went wrong",
+          retryable: event.retryable,
+          providerName: event.providerName,
+        });
+      }
+    }, []),
+    onError: React.useCallback((err: Error) => {
+      // Fallback for non-stream errors that surface via useChat.error — RUN_ERROR is handled via onEvent above.
+      // We still surface it here so the alert shows even if event is missed.
+      if (err.message.includes("temporarily overloaded") || err.message.includes("Service temporarily")) {
+        setRunError({ code: "INTERNAL_ERROR", message: err.message, retryable: false, providerName: "Nvidia" });
+      }
+    }, []),
+  });
 
   const isVoiceActive = voice.state !== "idle" && voice.state !== "ended";
 
@@ -221,6 +249,7 @@ function ChatApp() {
     (id: string) => {
       if (id === threadId) return;
       chat.setMessages([]);
+      setRunError(null);
       setThreadId(id);
       setHistoryPending(true);
       sawHistoryLoadingRef.current = false;
@@ -231,6 +260,7 @@ function ChatApp() {
   const handleNewChat = React.useCallback(async () => {
     const thread = await createThread(AGENT_ID);
     chat.setMessages([]);
+    setRunError(null);
     setThreadId(thread._id);
   }, [createThread, chat]);
 
@@ -242,6 +272,7 @@ function ChatApp() {
       void deleteThread(id);
       if (id !== threadId) return;
       chat.setMessages([]);
+      setRunError(null);
       setThreadId(null);
       // The thread that was loading no longer exists, so nothing is coming
       // for it — leaving the flag set would strand the skeleton over the
@@ -278,10 +309,23 @@ function ChatApp() {
   const handleSend = React.useCallback(
     (text?: string) => {
       if (chat.isLoadingHistory) return;
+      setRunError(null);
       void chat.sendMessage(text, { threadId: ensureThreadId() });
     },
     [chat, ensureThreadId]
   );
+
+  const handleRetry = React.useCallback(() => {
+    const lastUser = [...chat.messages].reverse().find((m) => m.role === "user");
+    const text = lastUser?.content?.trim();
+    if (!text) {
+      setRunError(null);
+      return;
+    }
+    setRunError(null);
+    // sendMessage with explicit text re-dispatches that turn; useChat writes the optimistic user bubble again
+    void chat.sendMessage(text, { threadId: ensureThreadId() });
+  }, [chat, ensureThreadId]);
 
   // Every `start()` opens a brand-new mic track, but `isMuted` is never reset
   // by the SDK — so a mute left over from the previous call would leave the
@@ -420,11 +464,38 @@ function ChatApp() {
           </div>
         )}
 
+        {runError ? (
+          <div className="px-4 pb-2">
+            <Alert variant="destructive" className="flex flex-col gap-2">
+              <div>
+                <AlertTitle>
+                  {runError.code === "INTERNAL_ERROR" && /overloaded/i.test(runError.message)
+                    ? "Service temporarily overloaded"
+                    : "Something went wrong"}
+                </AlertTitle>
+                <AlertDescription>
+                  {/overloaded/i.test(runError.message)
+                    ? `${runError.providerName ? runError.providerName + " is" : "The model is"} temporarily overloaded. Your message wasn't lost — retry in a few seconds.`
+                    : runError.message}
+                </AlertDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={handleRetry}>
+                  Retry
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setRunError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            </Alert>
+          </div>
+        ) : null}
+
         {/* A failed history fetch leaves `messages` empty and only sets
             `error` — so an unauthenticated or errored load rendered as a
             silent "How can I help?" on a thread that really does have
             messages. Surface it instead of letting it read as an empty chat. */}
-        {chat.error ? (
+        {chat.error && !runError ? (
           <div className="px-4 pb-2">
             <Alert variant="destructive">
               <AlertTitle>Failed to load</AlertTitle>
