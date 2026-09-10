@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useChat, useVoice, useThreads } from "@personaai/react";
 import type { PersonaThread, PersonaSubagentActivityEntry } from "@personaai/react";
 import {
@@ -17,7 +18,6 @@ import {
 } from "@/components/persona/chat";
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
-import { HealthSummaryCard } from "@/components/health/health-summary-card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -120,6 +120,24 @@ function ChatApp() {
       }
     }, []),
   });
+
+  // Hands off Home's quick-action chips and "Ask anything" bar into the
+  // composer: they navigate to /chat?prompt=..., and this seeds chat.input
+  // with it once so the user can review/edit before sending — never an
+  // auto-send. The ref guards against re-applying on a re-render that
+  // doesn't touch the URL; router.replace strips the param so a refresh
+  // doesn't re-seed (or re-fill over something the user has since typed).
+  const appliedPromptRef = React.useRef(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  React.useEffect(() => {
+    if (appliedPromptRef.current) return;
+    const prompt = searchParams.get("prompt");
+    if (!prompt) return;
+    appliedPromptRef.current = true;
+    chat.setInput(prompt);
+    router.replace("/chat");
+  }, [searchParams, chat, router]);
 
   const isVoiceActive = voice.state !== "idle" && voice.state !== "ended";
 
@@ -443,9 +461,7 @@ function ChatApp() {
         {historyPending && grouped.length === 0 ? (
           <ChatHistorySkeleton />
         ) : grouped.length === 0 ? (
-          <ChatEmptyState title="How can I help?">
-            <HealthSummaryCard />
-          </ChatEmptyState>
+          <ChatEmptyState title="How can I help?" />
         ) : (
           <ChatScroller>
             {grouped.map(({ message, blocks }) => (
