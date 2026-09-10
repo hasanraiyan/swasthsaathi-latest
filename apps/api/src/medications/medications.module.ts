@@ -12,5 +12,6 @@ import { Medication, MedicationSchema } from './schemas/medication.schema.js';
   ],
   controllers: [MedicationsController],
   providers: [MedicationsService],
+  exports: [MedicationsService],
 })
 export class MedicationsModule {}

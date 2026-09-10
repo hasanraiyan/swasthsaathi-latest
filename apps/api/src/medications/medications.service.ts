@@ -17,6 +17,24 @@ export class MedicationsService {
     return this.model.find({ userId }).sort({ status: 1, startDate: -1 }).lean();
   }
 
+  // Active medications whose start/end range covers `date` — the set a
+  // day's dose reminders are generated from.
+  findActiveForUserOnDate(userId: string, date: Date) {
+    return this.model
+      .find({
+        userId,
+        status: 'active',
+        startDate: { $lte: date },
+        $or: [{ endDate: { $exists: false } }, { endDate: { $gte: date } }],
+      })
+      .lean();
+  }
+
+  async existsForUser(userId: string, id: string): Promise<boolean> {
+    const count = await this.model.countDocuments({ _id: id, userId }).limit(1);
+    return count > 0;
+  }
+
   private async assertConditionOwnership(userId: string, conditionId: string | undefined) {
     if (!conditionId) return;
     const owned = await this.healthConditionsService.existsForUser(userId, conditionId);
