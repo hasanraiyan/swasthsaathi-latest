@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { useChat, useVoice, useThreads } from "@personaai/react";
 import type { PersonaThread, PersonaSubagentActivityEntry } from "@personaai/react";
 import {
@@ -18,21 +18,31 @@ import {
 } from "@/components/persona/chat";
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
+import { HealthGlanceTiles } from "@/components/home/health-glance-tiles";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { MicrophoneIcon, MicrophoneSlashIcon, PhoneXIcon } from "@phosphor-icons/react";
+import { CHAT_STARTER_PROMPTS } from "@/lib/chat-starter-prompts";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
 import { buildWorkspace } from "@/lib/persona/workspace-replay";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_PERSONA_AGENT_ID;
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 // Only mounted once Clerk confirms a session (see app/page.tsx's <Show>) —
 // useChat/useVoice/useThreads (and their Persona API calls, which need that
 // session's bearer token) never fire while signed out, so there's no 401 to
 // see in the first place.
 function ChatApp() {
+  const { user } = useUser();
   const {
     threads,
     isLoading: threadsLoading,
@@ -120,24 +130,6 @@ function ChatApp() {
       }
     }, []),
   });
-
-  // Hands off Home's quick-action chips and "Ask anything" bar into the
-  // composer: they navigate to /chat?prompt=..., and this seeds chat.input
-  // with it once so the user can review/edit before sending — never an
-  // auto-send. The ref guards against re-applying on a re-render that
-  // doesn't touch the URL; router.replace strips the param so a refresh
-  // doesn't re-seed (or re-fill over something the user has since typed).
-  const appliedPromptRef = React.useRef(false);
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  React.useEffect(() => {
-    if (appliedPromptRef.current) return;
-    const prompt = searchParams.get("prompt");
-    if (!prompt) return;
-    appliedPromptRef.current = true;
-    chat.setInput(prompt);
-    router.replace("/chat");
-  }, [searchParams, chat, router]);
 
   const isVoiceActive = voice.state !== "idle" && voice.state !== "ended";
 
@@ -461,7 +453,14 @@ function ChatApp() {
         {historyPending && grouped.length === 0 ? (
           <ChatHistorySkeleton />
         ) : grouped.length === 0 ? (
-          <ChatEmptyState title="How can I help?" />
+          <ChatEmptyState
+            title={`${greeting()}, ${user?.firstName ?? "there"} 👋`}
+            description="Here's what's happening with your health."
+            starterPrompts={CHAT_STARTER_PROMPTS}
+            onSelectPrompt={chat.setInput}
+          >
+            <HealthGlanceTiles />
+          </ChatEmptyState>
         ) : (
           <ChatScroller>
             {grouped.map(({ message, blocks }) => (
