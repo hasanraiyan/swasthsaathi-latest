@@ -39,10 +39,13 @@ function ChatHeader({
     >
       <SidebarTrigger className="md:hidden" />
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* The mark is desktop chrome: on a phone the 24px it takes is a real
+            slice of the width the thread title needs, and the wordmark beside
+            it already carries the identity. */}
         <span
           aria-hidden
-          className="flex size-6 shrink-0 items-center justify-center rounded-none bg-primary text-primary-foreground"
+          className="hidden size-6 shrink-0 items-center justify-center rounded-none bg-primary text-primary-foreground md:flex"
         >
           <HeartbeatIcon className="size-3.5" weight="bold" />
         </span>
@@ -54,7 +57,10 @@ function ChatHeader({
             <span aria-hidden className="shrink-0 text-muted-foreground/50">
               /
             </span>
-            <span className="truncate text-sm text-muted-foreground">
+            {/* `min-w-0` as well as `truncate`: a flex item defaults to
+                min-width:auto, so without it the span refuses to shrink below
+                its text and the ellipsis never applies. */}
+            <span className="min-w-0 truncate text-sm text-muted-foreground">
               {threadTitle}
             </span>
           </>
@@ -66,7 +72,7 @@ function ChatHeader({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="ml-auto shrink-0 md:hidden"
+          className="shrink-0 md:hidden"
           aria-label="New chat"
           onClick={onNewChat}
         >

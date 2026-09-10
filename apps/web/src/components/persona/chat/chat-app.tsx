@@ -2,10 +2,7 @@
 
 import * as React from "react";
 import { useChat, useVoice, useThreads } from "@personaai/react";
-import type {
-  PersonaSubagentActivityEntry,
-  PersonaWorkspaceFile,
-} from "@personaai/react";
+import type { PersonaSubagentActivityEntry } from "@personaai/react";
 import {
   ChatScroller,
   ChatScrollerItem,
@@ -21,6 +18,7 @@ import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { groupMessagesWithReasoning } from "@/lib/persona/group-messages";
+import { buildWorkspace } from "@/lib/persona/workspace-replay";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_PERSONA_AGENT_ID;
 
@@ -85,43 +83,19 @@ function ChatApp() {
     [chat.messages]
   );
 
-  // What the preview sheet resolves against. `chat.files` (the STATE_SNAPSHOT)
-  // is the primary source; on top of it we fold in any content a `present_file`
-  // call returned, because that envelope carries the file the agent actually
-  // meant and is the one path the snapshot is most likely to key differently.
-  // Guarded on both fields being strings, so an envelope that carries no
-  // content (or no JSON at all) simply contributes nothing.
-  const previewFiles = React.useMemo(() => {
-    const files: Record<string, PersonaWorkspaceFile> = { ...chat.files };
-    for (const message of chat.messages) {
-      for (const toolCall of message.toolCalls ?? []) {
-        if (toolCall.toolName !== "present_file" || toolCall.isError) continue;
-        if (!toolCall.result) continue;
-        try {
-          const parsed = JSON.parse(toolCall.result) as {
-            filePath?: unknown;
-            content?: unknown;
-          };
-          if (
-            typeof parsed.filePath !== "string" ||
-            typeof parsed.content !== "string" ||
-            files[parsed.filePath]?.content != null
-          ) {
-            continue;
-          }
-          files[parsed.filePath] = {
-            content: parsed.content,
-            size: parsed.content.length,
-            createdAt: null,
-            modifiedAt: null,
-          };
-        } catch {
-          // Not a JSON envelope — nothing to harvest from it.
-        }
-      }
-    }
-    return files;
-  }, [chat.files, chat.messages]);
+  // What the preview sheet resolves against.
+  //
+  // NOT `chat.files` alone. That map is written from exactly two places in the
+  // SDK — thread load and a live `STATE_SNAPSHOT` event — so for an agent that
+  // emits no snapshot it stays `{}` forever, and every preview landed on the
+  // empty state even for a file written seconds earlier. The transcript is the
+  // source that is always there: `write_file` args carry the whole body,
+  // `edit_file` carries the spans, `read_file` carries the result back. See
+  // lib/persona/workspace-replay.ts.
+  const workspace = React.useMemo(
+    () => buildWorkspace(chat.messages, chat.files),
+    [chat.messages, chat.files]
+  );
 
   const activeThreadTitle = React.useMemo(
     () => threads.find((t) => t._id === threadId)?.title,
@@ -334,7 +308,7 @@ function ChatApp() {
 
       <PresentedFileSheet
         path={openFilePath}
-        files={previewFiles}
+        workspace={workspace}
         onOpenChange={(open) => !open && setOpenFilePath(null)}
       />
     </SidebarProvider>

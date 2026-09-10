@@ -81,7 +81,13 @@ function ThreadRow({
             className="h-6 px-1.5 text-xs"
           />
         ) : (
-          <ItemTitle className="truncate">{thread.title || "New chat"}</ItemTitle>
+          // `w-full` overrides the primitive's own `w-fit`. With `w-fit` a
+          // long title sizes the element to its content instead of to the
+          // available width, so `truncate` has no overflow to clip and the
+          // title runs under the row actions instead of ellipsing.
+          <ItemTitle className="w-full min-w-0 truncate">
+            {thread.title || "New chat"}
+          </ItemTitle>
         )}
       </ItemContent>
 

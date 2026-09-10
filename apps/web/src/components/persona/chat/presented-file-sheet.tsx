@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/sheet";
 import { FileCodeIcon, FileTextIcon } from "@phosphor-icons/react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { PersonaWorkspaceFile } from "@personaai/react";
+import {
+  resolveWorkspaceFile,
+  type Workspace,
+} from "@/lib/persona/workspace-replay";
 
 const CODE_EXTENSIONS = [
   "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "rb", "go", "rs", "java",
@@ -23,98 +26,29 @@ function isCodeFile(path: string): boolean {
   return CODE_EXTENSIONS.includes(ext);
 }
 
-/** Split a workspace path into its meaningful segments, dropping the leading
- * `./`, `/`, and `workspace/` that an agent may or may not include:
- * `/workspace/outputs/a.py`, `workspace/outputs/a.py`, `./outputs/a.py` and
- * `outputs/a.py` all reduce to `["outputs", "a.py"]`. */
-function segments(p: string): string[] {
-  let out = p.trim().replace(/\\/g, "/");
-  // Any run of dots/slashes at the front is relative-path noise.
-  out = out.replace(/^(?:\.{1,2}\/|\/)+/, "");
-  // Drop a leading `workspace/` container, the virtual root deepagents files
-  // live under — the snapshot keys it inconsistently, sometimes with it and
-  // sometimes without.
-  out = out.replace(/^workspace\//, "");
-  return out.split("/").filter(Boolean);
-}
-
-/**
- * Resolve a presented path against the workspace snapshot.
- *
- * Two independent sources have to be reconciled here, which is the whole bug:
- * `chat.files` is keyed by the paths in the agent's `STATE_SNAPSHOT`
- * (`normalizeWorkspaceFiles`), while the path we're handed comes from the
- * `present_file` tool call itself — its `filePath` arg, or the `filePath` in
- * its result envelope (`parsePresentedFile`). Those routinely disagree by a
- * `/workspace` prefix, so a plain `files[path]` lookup missed and Open landed
- * on "Not in the workspace snapshot" for a file that was plainly sitting in
- * the snapshot under a slightly different spelling.
- *
- * Tiered, most-specific first:
- *   1. exact key — the common case, costs nothing
- *   2. equal segment lists — absorbs `./`, `/`, and `workspace/` differences
- *   3. longest shared segment suffix — absorbs a differing leading directory
- *      (e.g. `/workspace/out/a.py` vs `sandbox/out/a.py`). Ties are refused
- *      rather than guessed: two different `out/a.py` files must not silently
- *      resolve to the wrong one.
- */
-function resolveContent(
-  files: Record<string, PersonaWorkspaceFile>,
-  path: string
-): string | undefined {
-  if (!path) return undefined;
-
-  const exact = files[path];
-  if (exact?.content != null) return exact.content;
-
-  const target = segments(path);
-  if (target.length === 0) return undefined;
-
-  let best: { depth: number; content: string; ties: number } | null = null;
-
-  for (const [key, file] of Object.entries(files)) {
-    if (file.content == null) continue;
-    const keySegs = segments(key);
-
-    if (keySegs.length === target.length && keySegs.join("/") === target.join("/")) {
-      return file.content;
-    }
-
-    const depth = Math.min(keySegs.length, target.length);
-    if (depth === 0) continue;
-    // Compare only the trailing `depth` segments.
-    const shared = keySegs.slice(-depth).join("/") === target.slice(-depth).join("/");
-    if (!shared) continue;
-
-    if (!best || depth > best.depth) {
-      best = { depth, content: file.content, ties: 0 };
-    } else if (depth === best.depth) {
-      best.ties += 1;
-    }
-  }
-
-  return best && best.ties === 0 ? best.content : undefined;
-}
-
 /**
  * Slide-over preview of a workspace file.
  *
- * Opened only by the user — either the Open button on a `present_file` tool
- * card, or a click on a workspace path inside a tool card. Deliberately NOT
- * driven by `useChat().presentedFile`: the SDK sets that on its own the
- * moment a `present_file` call succeeds, which flung the panel open under the
- * user mid-conversation. Opening is the user's choice, so the caller owns the
- * path and this stays a dumb renderer.
+ * Opened only by the user — the Open button on a `present_file` tool card.
+ * Deliberately NOT driven by `useChat().presentedFile`: the SDK sets that on
+ * its own the moment a `present_file` call succeeds, which flung the panel
+ * open under the user mid-conversation. Opening is the user's choice, so the
+ * caller owns the path and this stays a dumb renderer.
+ *
+ * `workspace` is the conversation's rebuilt file map (see
+ * `lib/persona/workspace-replay.ts`), NOT `useChat().files` — that snapshot is
+ * empty for any agent that never emits a `STATE_SNAPSHOT`, which is what left
+ * every preview stuck on the empty state.
  */
 function PresentedFileSheet({
   path,
-  files,
+  workspace,
   onOpenChange,
 }: {
   /** Path to preview, or null when closed. */
   path: string | null;
-  /** useChat().files — the state-backed workspace snapshot. */
-  files: Record<string, PersonaWorkspaceFile>;
+  /** Rebuilt path -> content map for this conversation. */
+  workspace: Workspace;
   onOpenChange: (open: boolean) => void;
 }) {
   const isMobile = useIsMobile();
@@ -123,8 +57,8 @@ function PresentedFileSheet({
   const displayName = filePath.split("/").pop() || filePath;
 
   const content = React.useMemo(
-    () => (path ? resolveContent(files, path) : undefined),
-    [files, path]
+    () => (path ? resolveWorkspaceFile(workspace, path) : undefined),
+    [workspace, path]
   );
 
   const lines = React.useMemo(() => {
@@ -181,9 +115,9 @@ function PresentedFileSheet({
                 No content available
               </span>
               <span className="text-xs">
-                This file isn&apos;t in the workspace snapshot for this
-                conversation — it may have been deleted since, or written by a
-                run whose state wasn&apos;t recorded.
+                Nothing in this conversation wrote or read this file, so its
+                contents were never recorded here and there&apos;s nothing to
+                show.
               </span>
             </div>
           )}
