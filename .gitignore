@@ -1,0 +1,30 @@
+node_modules
+.pnpm-store
+
+# turbo
+.turbo
+
+# build outputs
+dist
+.next
+out
+build
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editors/os
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# generated
+apps/api/openapi.json
+packages/sdk/src/generated

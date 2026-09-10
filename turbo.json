@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "generate:openapi": {
+      "cache": false,
+      "outputs": ["openapi.json"]
+    },
+    "generate:sdk": {
+      "dependsOn": ["api#generate:openapi"],
+      "outputs": ["src/generated/**"]
+    }
+  }
+}

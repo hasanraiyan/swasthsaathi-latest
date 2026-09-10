@@ -1,0 +1,18 @@
+{
+  "name": "swasthsaathi",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "generate:openapi": "turbo run generate:openapi",
+    "generate:sdk": "turbo run generate:sdk"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20"
+  }
+}
