@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@clerk/nextjs": "^7.9.2",
     "@phosphor-icons/react": "^2.1.10",
     "@shadcn/react": "^0.3.1",
     "@swasthsaathi/sdk": "workspace:*",

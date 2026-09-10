@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { clerkMiddleware } from '@clerk/express';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
@@ -11,6 +12,7 @@ async function bootstrap() {
   );
 
   app.enableCors();
+  app.use(clerkMiddleware());
 
   const config = new DocumentBuilder()
     .setTitle('SwasthSaathi API')
