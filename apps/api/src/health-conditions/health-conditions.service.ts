@@ -15,6 +15,11 @@ export class HealthConditionsService {
     return this.model.find({ userId }).sort({ status: 1, createdAt: -1 }).lean();
   }
 
+  async existsForUser(userId: string, id: string): Promise<boolean> {
+    const count = await this.model.countDocuments({ _id: id, userId }).limit(1);
+    return count > 0;
+  }
+
   create(userId: string, dto: CreateHealthConditionDto) {
     return this.model.create({
       userId,

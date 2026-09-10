@@ -10,5 +10,6 @@ import { HealthCondition, HealthConditionSchema } from './schemas/health-conditi
   ],
   controllers: [HealthConditionsController],
   providers: [HealthConditionsService],
+  exports: [HealthConditionsService],
 })
 export class HealthConditionsModule {}
