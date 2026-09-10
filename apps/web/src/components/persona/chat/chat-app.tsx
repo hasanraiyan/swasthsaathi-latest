@@ -166,11 +166,19 @@ function ChatApp() {
   );
 
   const displayThreads = React.useMemo(() => {
+    const DEFAULT_TITLES = new Set(["New Conversation", "New Chat", "Main Chat", "Untitled", "Default Thread"]);
     const byId = new Map<string, PersonaThread>();
     for (const t of optimisticThreads) byId.set(t._id, t);
     for (const t of threads) {
-      const patched = optimisticTitles[t._id] ? { ...t, title: optimisticTitles[t._id] } : t;
+      const serverTitle = t.title?.trim() ?? "";
+      const isDefault = DEFAULT_TITLES.has(serverTitle);
       const existing = byId.get(t._id);
+      let patched: PersonaThread = t;
+      if (optimisticTitles[t._id]) {
+        patched = { ...t, title: optimisticTitles[t._id] };
+      } else if (existing && isDefault) {
+        patched = { ...t, title: existing.title };
+      }
       if (existing) {
         byId.set(t._id, { ...existing, ...patched, title: patched.title ?? existing.title });
       } else {
