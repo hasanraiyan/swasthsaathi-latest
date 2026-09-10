@@ -67,6 +67,9 @@ function ChatApp() {
       },
       [refetchThreads],
     ),
+    onTitle: React.useCallback(() => {
+      void refetchThreads();
+    }, [refetchThreads]),
     onEvent: React.useCallback((event: { type: string; code?: string; message?: string; retryable?: boolean; providerName?: string; title?: string }) => {
       if (event.type === "RUN_ERROR") {
         setRunError({

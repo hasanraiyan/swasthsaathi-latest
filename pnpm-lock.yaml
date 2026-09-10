@@ -121,8 +121,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@modelcontextprotocol/client@2.0.0)(@modelcontextprotocol/core@2.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.6.1)
       '@personaai/react':
-        specifier: ^0.8.0
-        version: 0.8.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^0.8.1
+        version: 0.8.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1489,8 +1489,8 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@personaai/react@0.8.0':
-    resolution: {integrity: sha512-J7vXbyTO75pIJCP1ho71jws/QKBg58x624Z2r98JcJzfbi5rkI8lu9TtQSa4kFEZFsRWzcFLFYpmRdDPfF71qA==}
+  '@personaai/react@0.8.1':
+    resolution: {integrity: sha512-bMUpsnsSjZc48e3b5Dt/pKKksYKqZrFuo1fGMo9TEvGPnVixM4HQmc3FKsPlj1Ys/ynN0USIwkCuUZzYSCJJYQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: '>=18.0.0'
@@ -6943,7 +6943,7 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
-  '@personaai/react@0.8.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@personaai/react@0.8.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@personaai/logger': 0.1.0
       react: 19.2.8
