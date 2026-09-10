@@ -1,11 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  ArrowUpIcon,
-  SquareIcon,
-  PhoneXIcon,
-} from "@phosphor-icons/react";
+import { ArrowUpIcon, SquareIcon } from "@phosphor-icons/react";
 import { InputGroup, InputGroupTextarea, InputGroupAddon, InputGroupButton } from "@/components/ui/input-group";
 
 // Same "start voice mode" glyph NotebookChat.js's ComposerForm uses (a
@@ -44,13 +40,17 @@ function VoiceModeIcon(props: React.SVGProps<SVGSVGElement>) {
  * unmounted. Which action the row shows is computed by the caller:
  *
  *   streaming   → stop generating
- *   voice live  → stop the call, or send the typed text into the call
+ *   voice live  → send the typed text into the call
+ *   idle, empty → start voice mode
  *   default     → send message (dimmed until there is text to send)
  *
- * Deliberately no voice-mode toggle on the composer itself: the surfaces in
- * this app that support voice run it in their own tab (VoiceTab), so an idle
- * "start voice" waveform would be a dead button. VoiceTab drives the live
- * states via isVoiceActive instead.
+ * Note that a live call has no end-call control here. It used to: a destructive
+ * PhoneXIcon sat beside the send arrow, but everything the user is looking at
+ * mid-call — the orb and its own controls — is several hundred pixels above
+ * this row, so the hang-up button was at the far bottom of the window, away
+ * from the thing it ends. Ending the call lives with the orb now (chat-app.tsx)
+ * and this row is left with the one job it still needs: sending into the call.
+ * That is why the voice branch has no bare `onStopVoice` to fall back on.
  *
  * The empty-state send is dimmed with `pointer-events-none` + reduced opacity
  * rather than a native `disabled` attribute — InputGroup greys out its WHOLE
@@ -69,7 +69,6 @@ function ChatComposer({
   onSend,
   onStop,
   onStartVoice,
-  onStopVoice,
   onSendToVoice,
   isStreaming = false,
   isVoiceActive = false,
@@ -83,7 +82,6 @@ function ChatComposer({
   /** Idle + empty input renders this in the send button's own slot instead
    * of a dimmed send arrow — omit to keep the old always-a-send-arrow look. */
   onStartVoice?: () => void;
-  onStopVoice?: () => void;
   onSendToVoice?: (text: string) => void;
   isStreaming?: boolean;
   isVoiceActive?: boolean;
@@ -113,6 +111,13 @@ function ChatComposer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
+            // `isComposing` is what keeps Enter-to-send from sending a
+            // half-finished word: while an IME candidate list is open (any
+            // Devanagari, Urdu, or other composed script) Enter is how you
+            // accept the candidate, and it arrives here looking exactly like a
+            // submit. Committing the composition is the browser's job; only an
+            // Enter that lands outside one is the user asking to send.
+            if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               submit();
@@ -135,24 +140,7 @@ function ChatComposer({
             >
               <SquareIcon weight="fill" />
             </InputGroupButton>
-          ) : isVoiceActive ? (
-            <div className="flex items-center gap-1.5">
-              {trimmed ? (
-                <InputGroupButton type="submit" variant="default" size="icon-sm" aria-label="Send to voice">
-                  <ArrowUpIcon />
-                </InputGroupButton>
-              ) : null}
-              <InputGroupButton
-                type="button"
-                variant="destructive"
-                size="icon-sm"
-                aria-label="Stop voice"
-                onClick={onStopVoice}
-              >
-                <PhoneXIcon />
-              </InputGroupButton>
-            </div>
-          ) : !trimmed && onStartVoice ? (
+          ) : !isVoiceActive && !trimmed && onStartVoice ? (
             <InputGroupButton
               type="button"
               variant="default"
@@ -163,13 +151,19 @@ function ChatComposer({
               <VoiceModeIcon className="size-4" />
             </InputGroupButton>
           ) : (
+            // One send button for both modes. Typing during a call routes to
+            // the call (see `submit`), so only the label differs — a second,
+            // near-identical button for the voice case was just a way for the
+            // two to drift apart.
             <InputGroupButton
               type="submit"
               variant="default"
               size="icon-sm"
-              aria-label="Send message"
+              aria-label={isVoiceActive ? "Send to voice" : "Send message"}
               // Dim but not natively disabled (see note above): pointer-events
               // off so an empty click no-ops and focuses the field instead.
+              // Also what keeps the row from collapsing mid-call with nothing
+              // typed — the slot is still occupied.
               className={trimmed ? undefined : "pointer-events-none opacity-40"}
             >
               <ArrowUpIcon />

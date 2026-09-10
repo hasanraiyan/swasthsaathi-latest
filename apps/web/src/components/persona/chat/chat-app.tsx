@@ -230,6 +230,32 @@ function ChatApp() {
     voice.start();
   }, [voice]);
 
+  // Typing during a call goes over the voice socket, which is a different
+  // channel from `chat.input` — the SDK's `sendText` (dist/index.js:1781)
+  // writes to the websocket and nothing else. So without this the composer
+  // goes on showing the text the user just sent, which reads as "it didn't
+  // send" and invites sending it a second time.
+  //
+  // Cleared only in the states where the send actually lands. "connecting" is
+  // deliberately excluded: the SDK creates the socket *before* it opens and
+  // only leaves "connecting" on the server's `voice_session_ready` message, so
+  // `sendText` can bail silently there. Wiping the box in that window would
+  // destroy text that was never delivered; text left in the box is
+  // recoverable, text deleted is not.
+  const handleSendToVoice = React.useCallback(
+    (text: string) => {
+      voice.sendText(text);
+      if (
+        voice.state === "listening" ||
+        voice.state === "thinking" ||
+        voice.state === "speaking"
+      ) {
+        chat.setInput("");
+      }
+    },
+    [voice, chat]
+  );
+
   const activeSubagentActivity: PersonaSubagentActivityEntry[] = React.useMemo(() => {
     if (!openSubagentToolCallId) return [];
     for (const m of chat.messages) {
@@ -387,8 +413,7 @@ function ChatApp() {
               onSend={() => handleSend()}
               onStop={chat.stop}
               onStartVoice={handleStartVoice}
-              onStopVoice={voice.stop}
-              onSendToVoice={voice.sendText}
+              onSendToVoice={handleSendToVoice}
               isStreaming={chat.isStreaming}
               isVoiceActive={isVoiceActive}
             />
