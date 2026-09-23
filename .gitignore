@@ -26,7 +26,8 @@ pnpm-debug.log*
 !.vscode/extensions.json
 
 # generated
+# (packages/sdk/src/generated is committed on purpose — CI/Vercel builds import it
+# without booting the API to regenerate it; run `pnpm generate:sdk` after API changes)
 apps/api/openapi.json
-packages/sdk/src/generated
 
 tsconfig.build.tsbuildinfo
