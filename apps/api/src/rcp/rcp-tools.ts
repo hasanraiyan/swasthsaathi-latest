@@ -8,9 +8,10 @@ import { REMINDER_RECURRENCES } from '../reminders/schemas/reminder.schema.js';
 // rcp-sdk dependency needed just to name the type.
 type RcpTool = NonNullable<PersonaModuleOptions['rcpManifest']>['tools'][number];
 
-// The Clerk user id this call acts for. Declared on every tool, but mapped
-// on the Persona side (RCP source param mapping) so it's filled by Persona
-// and never exposed to — or chosen by — the model.
+// The Clerk user id this call acts for. Declared on every tool. Intended to be
+// filled by Persona's RCP param mapping; as a stopgap the web app also tells
+// the model the id via contextOverride ("The user id is user_…"), so the
+// description below asks the model to copy it from there.
 export const RCP_USER_ID_PARAM = 'userId';
 
 interface ToolParam {
@@ -175,7 +176,8 @@ export function buildRcpTools(publicBaseUrl: string): RcpTool[] {
         name: RCP_USER_ID_PARAM,
         type: 'string',
         required: true,
-        description: 'Clerk user id — mapped by Persona, never set by the model',
+        description:
+          'The current user\'s id (looks like "user_…"). Copy it exactly from the "The user id is …" line in your context. Never guess or invent it.',
       },
     ],
     body: Object.fromEntries([

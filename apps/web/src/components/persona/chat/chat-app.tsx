@@ -81,7 +81,21 @@ function ChatApp() {
     return { userId: clerkUserId, clerkUserId, externalUserId: clerkUserId };
   }, [clerkUserId]);
 
-  const voice = useVoice({ agentId: AGENT_ID, threadId: threadId ?? undefined, context: rcpContext });
+  // Demo-day stopgap: also tell the model the id in plain text (appended to
+  // this turn's system prompt only, never persisted), so it can fill each
+  // manage_* tool's `userId` param itself — see RCP_USER_ID_PARAM's
+  // description in apps/api/src/rcp/rcp-tools.ts.
+  const userIdContextOverride = clerkUserId
+    ? `The user id is ${clerkUserId}. Always pass exactly this value as the \`userId\` argument on every tool call.`
+    : undefined;
+
+  const voice = useVoice({
+    agentId: AGENT_ID,
+    threadId: threadId ?? undefined,
+    context: rcpContext,
+    contextOverride: userIdContextOverride,
+  });
+  
   const chat = useChat({
     agentId: AGENT_ID,
     threadId: threadId ?? undefined,
@@ -354,9 +368,9 @@ function ChatApp() {
     (text?: string) => {
       if (chat.isLoadingHistory) return;
       setRunError(null);
-      void chat.sendMessage(text);
+      void chat.sendMessage(text, { contextOverride: userIdContextOverride });
     },
-    [chat]
+    [chat, userIdContextOverride]
   );
 
   const handleRetry = React.useCallback(() => {
@@ -367,8 +381,8 @@ function ChatApp() {
       return;
     }
     setRunError(null);
-    void chat.sendMessage(text);
-  }, [chat]);
+    void chat.sendMessage(text, { contextOverride: userIdContextOverride });
+  }, [chat, userIdContextOverride]);
 
   // Every `start()` opens a brand-new mic track, but `isMuted` is never reset
   // by the SDK — so a mute left over from the previous call would leave the
