@@ -9,7 +9,7 @@ export default function ReportsPage() {
       <Show when="signed-out">
         <Empty className="flex-1">
           <EmptyContent>
-            <SignIn />
+            <SignIn routing="hash" />
           </EmptyContent>
         </Empty>
       </Show>
