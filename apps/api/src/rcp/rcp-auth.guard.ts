@@ -8,10 +8,7 @@ import {
 } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
-
-// Every tool sends this, filled from its `userId` param — which the Persona
-// RCP source maps, so the model never supplies it. See rcp-tools.ts.
-export const RCP_USER_ID_HEADER = 'x-ss-user-id';
+import { RCP_USER_ID_PARAM } from './rcp-tools.js';
 
 type RcpRequest = Request & { rcpUserId?: string };
 
@@ -23,8 +20,9 @@ function safeEqual(a: string, b: string): boolean {
 
 // `Authorization: Bearer <RCP_SECRET>` proves the caller is Persona (it sends
 // the RCP source's secret on every call, per the manifest's header auth).
-// Only then is X-SS-User-Id trusted: it carries the Clerk user id Persona
-// mapped into the tool's `userId` param for this chat.
+// Only then is the body's `userId` trusted: it's the Clerk user id Persona
+// mapped into the tool's `userId` param for this chat (the model never sees
+// or sets it).
 @Injectable()
 export class RcpAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -36,7 +34,9 @@ export class RcpAuthGuard implements CanActivate {
     const auth = request.headers.authorization ?? '';
     if (!safeEqual(auth, `Bearer ${rcpSecret}`)) throw new UnauthorizedException('Invalid RCP credential');
 
-    const userId = request.header(RCP_USER_ID_HEADER)?.trim();
+    const body = request.body as Record<string, unknown> | undefined;
+    const raw = body?.[RCP_USER_ID_PARAM];
+    const userId = typeof raw === 'string' ? raw.trim() : undefined;
     // Clerk user ids look like "user_2abc…". Anything else (empty, an
     // unresolved "{{userId}}" template, junk) means the mapping didn't fill
     // it — refuse rather than create records under a bogus id.

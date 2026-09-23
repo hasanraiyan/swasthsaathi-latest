@@ -3,7 +3,6 @@ import { REPORT_CATEGORIES } from '../medical-reports/schemas/medical-report.sch
 import { MEASUREMENT_TYPES } from '../health-measurements/schemas/health-measurement.schema.js';
 import { MEDICATION_FREQUENCIES } from '../medications/schemas/medication.schema.js';
 import { REMINDER_RECURRENCES } from '../reminders/schemas/reminder.schema.js';
-import { RCP_USER_ID_HEADER } from './rcp-auth.guard.js';
 
 // The RcpTool shape as @personaai/adapters itself declares it — no direct
 // rcp-sdk dependency needed just to name the type.
@@ -179,7 +178,10 @@ export function buildRcpTools(publicBaseUrl: string): RcpTool[] {
         description: 'Clerk user id — mapped by Persona, never set by the model',
       },
     ],
-    headers: { [RCP_USER_ID_HEADER]: `{{${RCP_USER_ID_PARAM}}}` },
-    body: Object.fromEntries([['action', '{{action}}'], ...spec.params.map((p) => [p.name, `{{${p.name}}}`])]),
+    body: Object.fromEntries([
+      ['action', '{{action}}'],
+      ...spec.params.map((p) => [p.name, `{{${p.name}}}`]),
+      [RCP_USER_ID_PARAM, `{{${RCP_USER_ID_PARAM}}}`],
+    ]),
   }));
 }
