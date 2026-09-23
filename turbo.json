@@ -5,6 +5,16 @@
     "build": {
       "dependsOn": ["^build"],
       "env": ["CLERK_SECRET_KEY"],
+      "passThroughEnv": [
+        "PORT",
+        "MONGODB_URI",
+        "CLERK_PUBLISHABLE_KEY",
+        "PERSONA_BASE_URL",
+        "PERSONA_CREDENTIAL",
+        "WEB_APP_URL",
+        "RCP_PUBLIC_URL",
+        "RCP_SECRET"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
