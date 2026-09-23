@@ -1,6 +1,6 @@
-import { Show, SignIn } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 import { ChatApp } from "@/components/persona/chat/chat-app";
-import { Empty, EmptyContent } from "@/components/ui/empty";
+import { SignedOutScreen } from "@/components/brand/signed-out-screen";
 
 // Show is an async Server Component (Clerk Core 3 — SignedIn/SignedOut throw
 // at runtime in this version), so the auth gate has to live here rather than
@@ -14,11 +14,7 @@ export default function Home() {
   return (
     <>
       <Show when="signed-out">
-        <Empty className="flex-1">
-          <EmptyContent>
-            <SignIn routing="hash" />
-          </EmptyContent>
-        </Empty>
+        <SignedOutScreen />
       </Show>
       <Show when="signed-in">
         <ChatApp />

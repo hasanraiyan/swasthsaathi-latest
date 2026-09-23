@@ -112,7 +112,7 @@ function ChatComposer({
         submit();
       }}
     >
-      <InputGroup className="rounded-2xl px-1 py-1">
+      <InputGroup className="rounded-3xl bg-card px-1.5 py-1.5 shadow-soft-lg has-[textarea:focus-visible]:border-primary/40">
         <InputGroupTextarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -129,13 +129,15 @@ function ChatComposer({
               submit();
             }
           }}
-          placeholder={placeholder ?? (isVoiceActive ? "Type to voice…" : "Ask anything…")}
+          placeholder={
+            placeholder ?? (isVoiceActive ? "Type to voice…" : "Ask about symptoms, medicines, or reports…")
+          }
           rows={1}
           disabled={disabled}
-          className="max-h-40"
+          className="max-h-40 min-h-11 px-3 text-sm md:text-sm"
         />
 
-        <InputGroupAddon align="block-end" className="justify-end rounded-b-2xl px-2 pb-2">
+        <InputGroupAddon align="block-end" className="justify-end rounded-b-3xl px-2 pb-1.5 [&_[data-slot=button]]:size-8 [&_[data-slot=button]]:rounded-full">
           {isLoadingHistory ? (
             // `size-7` matches `size="icon-sm"` exactly, so the slot occupies
             // the same box and the row does not resize as the fetch settles.

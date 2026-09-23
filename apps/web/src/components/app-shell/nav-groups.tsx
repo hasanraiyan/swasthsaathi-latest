@@ -81,8 +81,8 @@ function AccountFooter() {
     user?.fullName || user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress || "Account";
 
   return (
-    <SidebarFooter className="border-t border-sidebar-border">
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl bg-sidebar-accent px-2.5 py-2">
+    <SidebarFooter className="p-3">
+      <div className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-sidebar-border bg-background px-2.5 py-2.5">
         <UserButton
           appearance={{
             elements: {

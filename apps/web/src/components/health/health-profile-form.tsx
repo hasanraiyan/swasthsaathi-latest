@@ -92,14 +92,14 @@ function HealthProfileForm() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-lg p-4">
+      <div className="mx-auto w-full max-w-2xl p-4">
         <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg overflow-y-auto p-4">
+    <div className="mx-auto w-full max-w-2xl overflow-y-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>Health Profile</CardTitle>

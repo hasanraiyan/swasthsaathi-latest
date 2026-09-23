@@ -1,17 +1,13 @@
-import { Show, SignIn } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 import { RemindersList } from "@/components/health/reminders-list";
-import { Empty, EmptyContent } from "@/components/ui/empty";
+import { SignedOutScreen } from "@/components/brand/signed-out-screen";
 
 // Same server-side auth gate as the other Health Companion pages.
 export default function RemindersPage() {
   return (
     <>
       <Show when="signed-out">
-        <Empty className="flex-1">
-          <EmptyContent>
-            <SignIn routing="hash" />
-          </EmptyContent>
-        </Empty>
+        <SignedOutScreen />
       </Show>
       <Show when="signed-in">
         <RemindersList />

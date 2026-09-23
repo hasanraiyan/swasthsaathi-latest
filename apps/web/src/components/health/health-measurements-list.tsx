@@ -364,7 +364,7 @@ function HealthMeasurementsList() {
   const latest = measurements?.[0];
 
   return (
-    <div className="mx-auto w-full max-w-lg overflow-y-auto p-4">
+    <div className="mx-auto w-full max-w-2xl overflow-y-auto p-4">
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
           <div className="min-w-0">

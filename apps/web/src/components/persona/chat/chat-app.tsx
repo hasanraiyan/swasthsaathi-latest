@@ -18,10 +18,9 @@ import {
 } from "@/components/persona/chat";
 import { ChatHeader } from "@/components/persona/chat/chat-header";
 import { ThreadSidebar } from "@/components/persona/chat/thread-sidebar";
-import { HealthGlanceTiles } from "@/components/home/health-glance-tiles";
+import { HomeDashboard } from "@/components/home/home-dashboard";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { MicrophoneIcon, MicrophoneSlashIcon, PhoneXIcon } from "@phosphor-icons/react";
 import { CHAT_STARTER_PROMPTS } from "@/lib/chat-starter-prompts";
@@ -71,11 +70,23 @@ function ChatApp() {
     providerName?: string;
   } | null>(null);
 
-  const voice = useVoice({ agentId: AGENT_ID, threadId: threadId ?? undefined });
+  // Per-turn RCP context: the Persona source's paramContextMap resolves each
+  // tool's `userId` param from this (the model never sees it). Without it the
+  // resolver has nothing to read and every manage_* call fails with "needs
+  // {{userId}} … produced no value". Sent under a few key names so it works
+  // whichever contextKey the source's mapping was registered with.
+  const clerkUserId = user?.id;
+  const rcpContext = React.useMemo((): Record<string, string> => {
+    if (!clerkUserId) return {};
+    return { userId: clerkUserId, clerkUserId, externalUserId: clerkUserId };
+  }, [clerkUserId]);
+
+  const voice = useVoice({ agentId: AGENT_ID, threadId: threadId ?? undefined, context: rcpContext });
   const chat = useChat({
     agentId: AGENT_ID,
     threadId: threadId ?? undefined,
     voice,
+    context: () => rcpContext,
     onThreadCreated: React.useCallback(
       (newId: string) => {
         setThreadId(newId);
@@ -455,11 +466,11 @@ function ChatApp() {
         ) : grouped.length === 0 ? (
           <ChatEmptyState
             title={`${greeting()}, ${user?.firstName ?? "there"} 👋`}
-            description="Here's what's happening with your health."
+            description="Take a step towards a healthier you."
             starterPrompts={CHAT_STARTER_PROMPTS}
             onSelectPrompt={chat.setInput}
           >
-            <HealthGlanceTiles />
+            <HomeDashboard onAsk={chat.setInput} />
           </ChatEmptyState>
         ) : (
           <ChatScroller>
@@ -571,8 +582,7 @@ function ChatApp() {
           </div>
         )}
 
-        <Separator />
-        <div className="p-3">
+        <div className="px-4 pt-1 pb-4 md:px-6">
           <div className="mx-auto w-full max-w-3xl">
             <ChatComposer
               value={chat.input}

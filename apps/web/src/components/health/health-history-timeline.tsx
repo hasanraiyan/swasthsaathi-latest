@@ -89,7 +89,7 @@ function HealthHistoryTimeline() {
   const groups = events ? groupByDay(events) : [];
 
   return (
-    <div className="mx-auto w-full max-w-lg overflow-y-auto p-4">
+    <div className="mx-auto w-full max-w-2xl overflow-y-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>My Health History</CardTitle>

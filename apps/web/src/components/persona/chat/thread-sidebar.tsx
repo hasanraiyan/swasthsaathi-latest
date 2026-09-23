@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { PlusIcon, TrashIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { AccountFooter, HealthNavGroup, PrimaryNavGroup } from "@/components/app-shell/nav-groups";
+import { BrandLockup } from "@/components/brand/brand";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -256,25 +257,29 @@ function ThreadSidebar({
     <>
       <style>{`@keyframes thread-title-reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}.thread-title-reveal{animation:thread-title-reveal 0.62s cubic-bezier(0.22,1,0.36,1) forwards;will-change:clip-path}`}</style>
       <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="gap-4 px-4 pt-5 pb-2">
+        <BrandLockup />
         <Button
           type="button"
-          variant="outline"
-          className="w-full justify-start gap-2"
+          size="lg"
+          className="h-10 w-full gap-2"
           onClick={handleCreate}
         >
-          <PlusIcon /> New chat
+          <PlusIcon weight="bold" /> New chat
         </Button>
       </SidebarHeader>
 
-      <PrimaryNavGroup pathname={pathname} />
-      <SidebarSeparator />
-      <HealthNavGroup pathname={pathname} />
+      <div className="px-1">
+        <PrimaryNavGroup pathname={pathname} />
+        <HealthNavGroup pathname={pathname} />
+      </div>
 
       <SidebarSeparator />
 
-      <div className="px-4 pt-2 pb-1 text-xs text-sidebar-foreground/70">Recent</div>
-      <SidebarContent className="gap-0.5 p-1.5">
+      <div className="px-5 pt-3 pb-1 text-[0.68rem] font-semibold tracking-[0.07em] text-muted-foreground uppercase">
+        Recent chats
+      </div>
+      <SidebarContent className="gap-0.5 px-2.5 py-1.5">
         {isLoading && threads.length === 0 ? (
           <div className="p-2 text-xs text-muted-foreground">Loading…</div>
         ) : error && threads.length === 0 ? (

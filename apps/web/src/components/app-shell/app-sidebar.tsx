@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { HeartbeatIcon } from "@phosphor-icons/react";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarSeparator } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar";
+import { BrandLockup } from "@/components/brand/brand";
 import { AccountFooter, HealthNavGroup, PrimaryNavGroup } from "@/components/app-shell/nav-groups";
 
 // The sidebar for every page except chat itself — chat's ThreadSidebar
@@ -14,16 +15,14 @@ function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-1.5 py-1 text-sm font-medium text-sidebar-foreground">
-          <HeartbeatIcon className="size-4 text-primary" weight="fill" />
-          SwasthyaSaathi
-        </div>
+      <SidebarHeader className="px-4 pt-5 pb-3">
+        <Link href="/" className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+          <BrandLockup />
+        </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-1">
         <PrimaryNavGroup pathname={pathname} />
-        <SidebarSeparator />
         <HealthNavGroup pathname={pathname} />
       </SidebarContent>
 

@@ -415,14 +415,14 @@ function MedicationsList() {
 
   if (medications === null && !error) {
     return (
-      <div className="mx-auto w-full max-w-lg p-4">
+      <div className="mx-auto w-full max-w-2xl p-4">
         <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg overflow-y-auto p-4">
+    <div className="mx-auto w-full max-w-2xl overflow-y-auto p-4">
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>

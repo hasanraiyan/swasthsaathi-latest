@@ -1,8 +1,9 @@
 "use client";
 
-import { HeartbeatIcon, PlusIcon } from "@phosphor-icons/react";
+import { PlusIcon } from "@phosphor-icons/react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { BrandWordmark } from "@/components/brand/brand";
 
 /**
  * App-wide chrome above the conversation.
@@ -33,34 +34,30 @@ function ChatHeader({
   return (
     <header
       className={
-        "flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 " +
+        "flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur " +
+        // Desktop has nothing to show here until a conversation has a title
+        // (brand + nav live in the sidebar), so the bar would be an empty
+        // strip over the home dashboard.
+        (threadTitle ? "" : "md:hidden ") +
         (className ?? "")
       }
     >
       <SidebarTrigger className="md:hidden" />
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        {/* The mark is desktop chrome: on a phone the 24px it takes is a real
-            slice of the width the thread title needs, and the wordmark beside
-            it already carries the identity. */}
-        <span
-          aria-hidden
-          className="hidden size-6 shrink-0 items-center justify-center rounded-none bg-primary text-primary-foreground md:flex"
-        >
-          <HeartbeatIcon className="size-3.5" weight="bold" />
-        </span>
-        <span className="shrink-0 text-sm font-semibold tracking-tight">
-          SwasthSaathi
-        </span>
+        {/* The wordmark is phone-only: on desktop the sidebar's brand lockup is
+            always in view, so repeating it here is noise — the header just
+            names the conversation. */}
+        <BrandWordmark className="shrink-0 text-sm md:hidden" />
         {threadTitle ? (
           <>
-            <span aria-hidden className="shrink-0 text-muted-foreground/50">
+            <span aria-hidden className="shrink-0 text-muted-foreground/50 md:hidden">
               /
             </span>
             {/* `min-w-0` as well as `truncate`: a flex item defaults to
                 min-width:auto, so without it the span refuses to shrink below
                 its text and the ellipsis never applies. */}
-            <span className="min-w-0 truncate text-sm text-muted-foreground">
+            <span className="min-w-0 truncate text-sm text-muted-foreground md:font-semibold md:text-foreground">
               {threadTitle}
             </span>
           </>
