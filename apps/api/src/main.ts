@@ -11,10 +11,10 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true }),
   );
 
-  app.enableCors({
-    origin: process.env.WEB_APP_URL ?? 'http://localhost:3002',
-    credentials: true,
-  });
+  // Any origin: auth is a Clerk bearer token in the Authorization header, never
+  // cookies, so there's no ambient credential another site could ride on.
+  // (credentials stays off — browsers reject `*` with credentials anyway.)
+  app.enableCors({ origin: '*' });
   app.use(clerkMiddleware());
 
   const config = new DocumentBuilder()
