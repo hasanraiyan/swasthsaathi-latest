@@ -14,6 +14,7 @@ export const HEALTH_EVENT_TYPES = [
   'dose_missed',
   'measurement_recorded',
   'reminder_completed',
+  'report_uploaded',
 ] as const;
 export type HealthEventType = (typeof HEALTH_EVENT_TYPES)[number];
 

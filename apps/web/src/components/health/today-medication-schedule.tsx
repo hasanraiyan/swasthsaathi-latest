@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useApiClient } from "@/hooks/use-api-client";
+import { EnableNotificationsButton, HEALTH_DATA_CHANGED_EVENT } from "@/components/health/reminder-notifier";
 import type { components } from "@swasthsaathi/sdk";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,9 +28,8 @@ function TodayMedicationSchedule() {
   const api = useApiClient();
   const [slots, setSlots] = React.useState<DoseSlot[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  // "Dismiss" only hides a pending reminder from this session's view — there's
-  // no reminder-delivery system (push/cron) yet for it to mean anything more
-  // than that, so it isn't persisted and reappears on reload.
+  // "Dismiss" only hides a pending slot from this card for this session —
+  // it doesn't silence the dose alert, which ReminderNotifier owns.
   const [dismissed, setDismissed] = React.useState<Set<string>>(new Set());
   const [savingKey, setSavingKey] = React.useState<string | null>(null);
 
@@ -45,8 +45,11 @@ function TodayMedicationSchedule() {
       }
     }
     load();
+    // Doses marked from the due-now tray (ReminderNotifier) land here too.
+    window.addEventListener(HEALTH_DATA_CHANGED_EVENT, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(HEALTH_DATA_CHANGED_EVENT, load);
     };
   }, [api]);
 
@@ -73,9 +76,12 @@ function TodayMedicationSchedule() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Today</CardTitle>
-        <CardDescription>Your medication schedule for today.</CardDescription>
+      <CardHeader className="flex-row items-center justify-between">
+        <div>
+          <CardTitle>Today</CardTitle>
+          <CardDescription>Your medication schedule for today.</CardDescription>
+        </div>
+        <EnableNotificationsButton />
       </CardHeader>
       <CardContent>
         {error && (

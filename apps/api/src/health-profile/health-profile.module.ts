@@ -10,5 +10,6 @@ import { HealthProfile, HealthProfileSchema } from './schemas/health-profile.sch
   ],
   controllers: [HealthProfileController],
   providers: [HealthProfileService],
+  exports: [HealthProfileService],
 })
 export class HealthProfileModule {}

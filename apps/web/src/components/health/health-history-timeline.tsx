@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   BellRingingIcon,
   ChartLineIcon,
+  FileTextIcon,
   FirstAidKitIcon,
   type Icon,
   PillIcon,
@@ -30,6 +31,7 @@ const EVENT_ICON: Record<HealthEventType, Icon> = {
   dose_missed: PillIcon,
   measurement_recorded: ChartLineIcon,
   reminder_completed: BellRingingIcon,
+  report_uploaded: FileTextIcon,
 };
 
 function dayLabel(date: Date): string {

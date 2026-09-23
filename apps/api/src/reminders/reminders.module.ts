@@ -12,5 +12,6 @@ import { Reminder, ReminderSchema } from './schemas/reminder.schema.js';
   ],
   controllers: [RemindersController],
   providers: [RemindersService],
+  exports: [RemindersService],
 })
 export class RemindersModule {}

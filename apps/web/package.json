@@ -12,7 +12,7 @@
     "@base-ui/react": "^1.8.0",
     "@clerk/nextjs": "^7.9.2",
     "@modelcontextprotocol/ext-apps": "^2.0.0",
-    "@personaai/react": "^0.8.1",
+    "@personaai/react": "^0.17.1",
     "@phosphor-icons/react": "^2.1.10",
     "@shadcn/react": "^0.3.1",
     "@streamdown/code": "^1.1.1",

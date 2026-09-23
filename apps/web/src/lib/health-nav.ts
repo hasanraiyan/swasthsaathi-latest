@@ -3,6 +3,7 @@ import {
   BellRingingIcon,
   ChartLineIcon,
   ClockCounterClockwiseIcon,
+  FileTextIcon,
   FirstAidKitIcon,
   PillIcon,
   UserIcon,
@@ -24,5 +25,6 @@ export const HEALTH_NAV_ITEMS: HealthNavItem[] = [
   { href: "/health/medications", label: "Medications", icon: PillIcon },
   { href: "/health/measurements", label: "Measurements", icon: ChartLineIcon },
   { href: "/health/reminders", label: "Reminders", icon: BellRingingIcon },
+  { href: "/health/reports", label: "Medical Reports", icon: FileTextIcon },
   { href: "/health/history", label: "Health History", icon: ClockCounterClockwiseIcon },
 ];

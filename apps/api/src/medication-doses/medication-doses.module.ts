@@ -14,5 +14,6 @@ import { MedicationDose, MedicationDoseSchema } from './schemas/medication-dose.
   ],
   controllers: [MedicationDosesController],
   providers: [MedicationDosesService],
+  exports: [MedicationDosesService],
 })
 export class MedicationDosesModule {}

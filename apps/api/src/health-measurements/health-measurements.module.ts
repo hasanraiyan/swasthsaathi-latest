@@ -12,5 +12,6 @@ import { HealthMeasurement, HealthMeasurementSchema } from './schemas/health-mea
   ],
   controllers: [HealthMeasurementsController],
   providers: [HealthMeasurementsService],
+  exports: [HealthMeasurementsService],
 })
 export class HealthMeasurementsModule {}

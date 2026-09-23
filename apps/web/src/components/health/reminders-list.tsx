@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useApiClient } from "@/hooks/use-api-client";
+import { EnableNotificationsButton, HEALTH_DATA_CHANGED_EVENT } from "@/components/health/reminder-notifier";
 import type { components } from "@swasthsaathi/sdk";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -263,8 +264,11 @@ function RemindersList() {
       }
     }
     load();
+    // The due-now tray (ReminderNotifier) can complete/snooze reminders too.
+    window.addEventListener(HEALTH_DATA_CHANGED_EVENT, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(HEALTH_DATA_CHANGED_EVENT, load);
     };
   }, [api]);
 
@@ -327,9 +331,12 @@ function RemindersList() {
             <CardTitle>Reminders</CardTitle>
             <CardDescription>Not everything is a medicine.</CardDescription>
           </div>
-          <Button type="button" size="sm" onClick={openAddDialog}>
-            <PlusIcon /> Add
-          </Button>
+          <div className="flex gap-1.5">
+            <EnableNotificationsButton />
+            <Button type="button" size="sm" onClick={openAddDialog}>
+              <PlusIcon /> Add
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
