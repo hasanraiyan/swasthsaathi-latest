@@ -9,10 +9,10 @@ import { RCP_USER_ID_HEADER } from './rcp-auth.guard.js';
 // rcp-sdk dependency needed just to name the type.
 type RcpTool = NonNullable<PersonaModuleOptions['rcpManifest']>['tools'][number];
 
-// Persona's reserved template token: filled server-side with the external
-// user id our resolveUserFrom verified for this chat. Deliberately NOT
-// declared in `params`, so the model never sees or sets it.
-const EXTERNAL_USER_ID_TOKEN = '{{externalUserId}}';
+// The Clerk user id this call acts for. Declared on every tool, but mapped
+// on the Persona side (RCP source param mapping) so it's filled by Persona
+// and never exposed to — or chosen by — the model.
+export const RCP_USER_ID_PARAM = 'userId';
 
 interface ToolParam {
   name: string;
@@ -172,8 +172,14 @@ export function buildRcpTools(publicBaseUrl: string): RcpTool[] {
     params: [
       { name: 'action', type: 'string', required: true, description: `One of ${oneOf(spec.actions)}` },
       ...spec.params.map((p) => ({ name: p.name, type: p.type ?? 'string', required: false, description: p.description })),
+      {
+        name: RCP_USER_ID_PARAM,
+        type: 'string',
+        required: true,
+        description: 'Clerk user id — mapped by Persona, never set by the model',
+      },
     ],
-    headers: { [RCP_USER_ID_HEADER]: EXTERNAL_USER_ID_TOKEN },
+    headers: { [RCP_USER_ID_HEADER]: `{{${RCP_USER_ID_PARAM}}}` },
     body: Object.fromEntries([['action', '{{action}}'], ...spec.params.map((p) => [p.name, `{{${p.name}}}`])]),
   }));
 }
