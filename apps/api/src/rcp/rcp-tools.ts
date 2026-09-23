@@ -3,15 +3,16 @@ import { REPORT_CATEGORIES } from '../medical-reports/schemas/medical-report.sch
 import { MEASUREMENT_TYPES } from '../health-measurements/schemas/health-measurement.schema.js';
 import { MEDICATION_FREQUENCIES } from '../medications/schemas/medication.schema.js';
 import { REMINDER_RECURRENCES } from '../reminders/schemas/reminder.schema.js';
-import { RCP_USER_TOKEN_HEADER } from './rcp-user-token.js';
+import { RCP_USER_ID_HEADER } from './rcp-auth.guard.js';
 
 // The RcpTool shape as @personaai/adapters itself declares it — no direct
 // rcp-sdk dependency needed just to name the type.
 type RcpTool = NonNullable<PersonaModuleOptions['rcpManifest']>['tools'][number];
 
-// Resolved from the chat turn's server-injected context via the RCP source's
-// paramContextMap — never shown to (or fillable by) the model.
-export const RCP_USER_TOKEN_PARAM = 'userToken';
+// Persona's reserved template token: filled server-side with the external
+// user id our resolveUserFrom verified for this chat. Deliberately NOT
+// declared in `params`, so the model never sees or sets it.
+const EXTERNAL_USER_ID_TOKEN = '{{externalUserId}}';
 
 interface ToolParam {
   name: string;
@@ -171,9 +172,8 @@ export function buildRcpTools(publicBaseUrl: string): RcpTool[] {
     params: [
       { name: 'action', type: 'string', required: true, description: `One of ${oneOf(spec.actions)}` },
       ...spec.params.map((p) => ({ name: p.name, type: p.type ?? 'string', required: false, description: p.description })),
-      { name: RCP_USER_TOKEN_PARAM, type: 'string', required: true, description: 'Resolved from context — never set by the model' },
     ],
-    headers: { [RCP_USER_TOKEN_HEADER]: `{{${RCP_USER_TOKEN_PARAM}}}` },
+    headers: { [RCP_USER_ID_HEADER]: EXTERNAL_USER_ID_TOKEN },
     body: Object.fromEntries([['action', '{{action}}'], ...spec.params.map((p) => [p.name, `{{${p.name}}}`])]),
   }));
 }
